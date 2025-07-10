@@ -4,15 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dompet & Target Bersama</title>
-    <meta name="google-site-verification" content="MASUKKAN_KODE_VERIFIKASI_ANDA_DI_SINI_JIKA_ADA" />
-    <!-- Memuat Tailwind CSS untuk styling -->
+    <!--
+      OPSIONAL: Jika Anda melanjutkan verifikasi Google, 
+      tempel kode verifikasi Anda di sini.
+    -->
+    <meta name="google-site-verification" content="KODE_GOOGLE_ANDA_DI_SINI" />
+
+    <!-- Memuat Library -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Memuat React -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Memuat Recharts untuk Grafik -->
     <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
-    <!-- Memuat Babel untuk JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
@@ -22,29 +24,31 @@
         // --- Memuat Firebase SDK ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, serverTimestamp, updateDoc, arrayUnion, arrayRemove, increment, setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         
         // --- Konfigurasi Firebase ---
-        const dummyFirebaseConfig = {
-            apiKey: "AIzaSyA...dummy",
-            authDomain: "dummy.firebaseapp.com",
-            projectId: "dummy",
-            storageBucket: "dummy.appspot.com",
-            messagingSenderId: "12345",
-            appId: "1:12345:web:dummy"
+        // Kunci database Anda sudah dimasukkan di sini.
+        const firebaseConfig = {
+           apiKey: "AIzaSyB91qA6AGjNBAEyIQSlHvN482esZKlP_Ok",
+           authDomain: "dompet-pasangan-kita.firebaseapp.com",
+           projectId: "dompet-pasangan-kita",
+           storageBucket: "dompet-pasangan-kita.appspot.com",
+           messagingSenderId: "54318864599",
+           appId: "1:54318864599:web:3fc852b439a62577563892"
         };
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : dummyFirebaseConfig;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const isLiveEnvironment = typeof __firebase_config === 'undefined';
+        
+        const isConfigValid = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("GANTI_DENGAN");
 
         // --- Inisialisasi Firebase ---
         let app, db, authInstance;
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            authInstance = getAuth(app);
-        } catch (e) {
-            console.error("Firebase initialization failed:", e);
+        if (isConfigValid) {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                authInstance = getAuth(app);
+            } catch (e) {
+                console.error("Firebase initialization failed:", e);
+            }
         }
 
         // --- Komponen Ikon ---
@@ -72,8 +76,8 @@
             React.useEffect(() => {
                 if (!user || !ledgerId || !db) { setIsLoading(false); return; }
                 setIsLoading(true);
-                const transQuery = query(collection(db, `artifacts/${appId}/public/data/transactions`), where('ledgerId', '==', ledgerId), where('monthYear', '==', monthYear));
-                const goalsQuery = query(collection(db, `artifacts/${appId}/public/data/savings`), where('ledgerId', '==', ledgerId));
+                const transQuery = query(collection(db, `ledgers/${ledgerId}/transactions`), where('monthYear', '==', monthYear));
+                const goalsQuery = query(collection(db, `ledgers/${ledgerId}/savings`));
 
                 const unsubTransactions = onSnapshot(transQuery, (snapshot) => setTransactions(snapshot.docs.map(doc => doc.data())));
                 const unsubGoals = onSnapshot(goalsQuery, (snapshot) => setGoals(snapshot.docs.map(doc => doc.data())));
@@ -115,7 +119,7 @@
 
             const COLORS = ['#3B82F6', '#EF4444', '#F97316', '#8B5CF6'];
             
-            if (isLoading && !isLiveEnvironment) return <p className="text-center text-gray-500 mt-8">Memuat Dashboard...</p>;
+            if (isLoading) return <p className="text-center text-gray-500 mt-8">Memuat Dashboard...</p>;
 
             return (
                 <div className="space-y-6">
@@ -160,8 +164,8 @@
             React.useEffect(() => {
                 if (!user || !ledgerId || !db) { setIsLoading(false); setTransactions([]); return; }
                 setIsLoading(true);
-                const collectionPath = `artifacts/${appId}/public/data/transactions`;
-                const q = query(collection(db, collectionPath), where('ledgerId', '==', ledgerId), where('monthYear', '==', monthYear));
+                const collectionPath = `ledgers/${ledgerId}/transactions`;
+                const q = query(collection(db, collectionPath), where('monthYear', '==', monthYear));
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     const newTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
                     setTransactions(newTransactions);
@@ -174,15 +178,15 @@
                 e.preventDefault();
                 if (!description || !amount || !user || !ledgerId || !db) return;
                 try {
-                    const collectionPath = `artifacts/${appId}/public/data/transactions`;
-                    await addDoc(collection(db, collectionPath), { description, amount: Number(amount), type, userId: user.uid, userName: user.name || 'Anonim', createdAt: serverTimestamp(), ledgerId: ledgerId, monthYear: monthYear });
+                    const collectionPath = `ledgers/${ledgerId}/transactions`;
+                    await addDoc(collection(db, collectionPath), { description, amount: Number(amount), type, userId: user.uid, userName: user.name || 'Anonim', createdAt: serverTimestamp(), monthYear: monthYear });
                     setDescription(''); setAmount(''); setError('');
                 } catch (err) { console.error("Error adding transaction:", err); setError("Gagal menambah transaksi."); }
             };
 
             const deleteTransaction = async (id) => {
                 if(!db) return;
-                try { await deleteDoc(doc(db, `artifacts/${appId}/public/data/transactions/${id}`)); } catch (err) { console.error("Error deleting transaction:", err); setError("Gagal menghapus transaksi."); }
+                try { await deleteDoc(doc(db, `ledgers/${ledgerId}/transactions/${id}`)); } catch (err) { console.error("Error deleting transaction:", err); setError("Gagal menghapus transaksi."); }
             };
 
             return (
@@ -205,8 +209,8 @@
             React.useEffect(() => {
                 if (!user || !ledgerId || !db) { setIsLoading(false); setHabits([]); return; }
                 setIsLoading(true);
-                const collectionPath = `artifacts/${appId}/public/data/habits`;
-                const q = query(collection(db, collectionPath), where('ledgerId', '==', ledgerId));
+                const collectionPath = `ledgers/${ledgerId}/habits`;
+                const q = query(collection(db, collectionPath));
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     setHabits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                     setIsLoading(false);
@@ -218,8 +222,8 @@
                 e.preventDefault();
                 if (!newHabitName || !user || !ledgerId || !db) return;
                 try {
-                    const collectionPath = `artifacts/${appId}/public/data/habits`;
-                    await addDoc(collection(db, collectionPath), { name: newHabitName, completions: [], createdAt: serverTimestamp(), userId: user.uid, ledgerId: ledgerId });
+                    const collectionPath = `ledgers/${ledgerId}/habits`;
+                    await addDoc(collection(db, collectionPath), { name: newHabitName, completions: [], createdAt: serverTimestamp(), userId: user.uid });
                     setNewHabitName(''); setError('');
                 } catch (err) { console.error("Error adding habit:", err); setError("Gagal menambah kebiasaan."); }
             };
@@ -230,12 +234,12 @@
                 const currentCompletions = habit.completions || [];
                 const isDone = currentCompletions.includes(dateString);
                 const newCompletions = isDone ? arrayRemove(dateString) : arrayUnion(dateString);
-                try { await updateDoc(doc(db, `artifacts/${appId}/public/data/habits/${habit.id}`), { completions: newCompletions }); } catch (err) { console.error("Error toggling habit:", err); }
+                try { await updateDoc(doc(db, `ledgers/${ledgerId}/habits/${habit.id}`), { completions: newCompletions }); } catch (err) { console.error("Error toggling habit:", err); }
             };
             
             const deleteHabit = async (id) => {
                 if(!db) return;
-                try { await deleteDoc(doc(db, `artifacts/${appId}/public/data/habits/${id}`)); } catch (err) { console.error("Error deleting habit:", err); }
+                try { await deleteDoc(doc(db, `ledgers/${ledgerId}/habits/${id}`)); } catch (err) { console.error("Error deleting habit:", err); }
             };
 
             return (
@@ -257,8 +261,8 @@
             React.useEffect(() => {
                 if (!user || !ledgerId || !db) { setIsLoading(false); setGoals([]); return; }
                 setIsLoading(true);
-                const collectionPath = `artifacts/${appId}/public/data/savings`;
-                const q = query(collection(db, collectionPath), where('ledgerId', '==', ledgerId));
+                const collectionPath = `ledgers/${ledgerId}/savings`;
+                const q = query(collection(db, collectionPath));
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     setGoals(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                     setIsLoading(false);
@@ -270,8 +274,8 @@
                 e.preventDefault();
                 if (!newGoalName || !newTargetAmount || !user || !ledgerId || !db) return;
                 try {
-                    const collectionPath = `artifacts/${appId}/public/data/savings`;
-                    await addDoc(collection(db, collectionPath), { name: newGoalName, targetAmount: Number(newTargetAmount), currentAmount: 0, createdAt: serverTimestamp(), userId: user.uid, ledgerId: ledgerId });
+                    const collectionPath = `ledgers/${ledgerId}/savings`;
+                    await addDoc(collection(db, collectionPath), { name: newGoalName, targetAmount: Number(newTargetAmount), currentAmount: 0, createdAt: serverTimestamp(), userId: user.uid });
                     setNewGoalName(''); setNewTargetAmount(''); setError('');
                 } catch (err) { console.error("Error adding goal:", err); setError("Gagal menambah target tabungan."); }
             };
@@ -280,12 +284,12 @@
                 if(!db) return;
                 const amount = Number(amountToAdd[goalId] || 0);
                 if (amount <= 0) return;
-                try { await updateDoc(doc(db, `artifacts/${appId}/public/data/savings/${goalId}`), { currentAmount: increment(amount) }); setAmountToAdd(prev => ({ ...prev, [goalId]: '' })); } catch (err) { console.error("Error adding funds:", err); setError("Gagal menambah dana."); }
+                try { await updateDoc(doc(db, `ledgers/${ledgerId}/savings/${goalId}`), { currentAmount: increment(amount) }); setAmountToAdd(prev => ({ ...prev, [goalId]: '' })); } catch (err) { console.error("Error adding funds:", err); setError("Gagal menambah dana."); }
             };
 
             const deleteGoal = async (id) => {
                 if(!db) return;
-                try { await deleteDoc(doc(db, `artifacts/${appId}/public/data/savings/${id}`)); } catch (err) { console.error("Error deleting goal:", err); setError("Gagal menghapus target."); }
+                try { await deleteDoc(doc(db, `ledgers/${ledgerId}/savings/${id}`)); } catch (err) { console.error("Error deleting goal:", err); setError("Gagal menghapus target."); }
             };
 
             return (
@@ -361,6 +365,7 @@
             const [showProfileSetup, setShowProfileSetup] = React.useState(false);
             const [ledgerDoc, setLedgerDoc] = React.useState(null);
             const [selectedDate, setSelectedDate] = React.useState(new Date());
+            const [authError, setAuthError] = React.useState(null);
 
             React.useEffect(() => {
                 if(!authInstance) return;
@@ -368,8 +373,12 @@
                     if (currentUser) {
                         setUser({ uid: currentUser.uid });
                     } else {
-                        try { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { await signInWithCustomToken(authInstance, __initial_auth_token); } else { await signInAnonymously(authInstance); }
-                        } catch (authError) { console.error("Authentication error:", authError); }
+                        try { 
+                            await signInAnonymously(authInstance); 
+                        } catch (err) { 
+                            console.error("Authentication error:", err); 
+                            setAuthError(err);
+                        }
                     }
                 });
                 return () => unsubscribe();
@@ -377,7 +386,7 @@
 
             React.useEffect(() => {
                 if (!user?.uid || !ledgerId || !db) return;
-                const ledgerDocRef = doc(db, `artifacts/${appId}/public/data/ledgers/${ledgerId}`);
+                const ledgerDocRef = doc(db, `ledgers/${ledgerId}`);
                 const unsub = onSnapshot(ledgerDocRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
@@ -398,7 +407,7 @@
 
             const handleProfileSubmit = async (name, photoURL) => {
                 if (!user || !ledgerId || !name || !db) return;
-                const ledgerDocRef = doc(db, `artifacts/${appId}/public/data/ledgers/${ledgerId}`);
+                const ledgerDocRef = doc(db, `ledgers/${ledgerId}`);
                 try {
                     const currentParticipantData = ledgerDoc?.participants?.[user.uid] || {};
                     
@@ -422,15 +431,45 @@
             const leaveLedger = () => { setLedgerId(''); localStorage.removeItem('ledgerId'); setActiveTab('dashboard');};
             const copyLedgerId = () => { const d = document.createElement('textarea'); d.value = ledgerId; document.body.appendChild(d); d.select(); document.execCommand('copy'); document.body.removeChild(d); setCopied(true); setTimeout(() => setCopied(false), 2000); };
 
-            if (!db && isLiveEnvironment) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-100">
-                        <div className="text-center">
-                            <h2 className="text-xl font-bold text-red-600">Koneksi Gagal</h2>
-                            <p className="text-gray-600">Aplikasi ini tidak dapat terhubung ke database saat dijalankan di luar lingkungan yang semestinya.</p>
+            if (!isConfigValid) {
+                 return (
+                    <div className="min-h-screen flex items-center justify-center p-4 bg-red-50">
+                        <div className="text-center p-8 bg-white rounded-lg shadow-2xl max-w-lg">
+                            <h2 className="text-2xl font-bold text-red-700 mb-4">Konfigurasi Database Diperlukan</h2>
+                            <p className="text-gray-700 mb-2">
+                                Aplikasi ini belum terhubung ke database. Anda perlu menyalin "kunci" konfigurasi dari proyek Firebase Anda.
+                            </p>
+                            <p className="text-gray-700 mb-6">
+                                Silakan buka file <code>index.html</code> di GitHub, cari variabel <code>firebaseConfig</code>, dan ganti isinya dengan kunci yang Anda dapatkan dari Firebase.
+                            </p>
+                            <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
+                                Buka Firebase Console
+                            </a>
                         </div>
                     </div>
-                )
+                );
+            }
+
+            if (authError) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4 bg-red-50">
+                        <div className="text-center p-8 bg-white rounded-lg shadow-2xl max-w-lg">
+                            <h2 className="text-2xl font-bold text-red-700 mb-4">Masalah Konfigurasi Otentikasi</h2>
+                            <p className="text-gray-700 mb-2">
+                                Aplikasi gagal terhubung ke layanan otentikasi Firebase.
+                            </p>
+                            <p className="text-gray-700 mb-2">
+                                Kemungkinan besar, metode login "Anonim" belum diaktifkan di proyek Firebase Anda.
+                            </p>
+                             <p className="text-gray-700 mb-6">
+                                Silakan buka Firebase Console, masuk ke bagian <strong>Authentication</strong>, pilih tab <strong>Sign-in method</strong>, dan aktifkan provider <strong>Anonymous</strong>.
+                            </p>
+                            <a href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers`} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
+                                Buka Pengaturan Otentikasi
+                            </a>
+                        </div>
+                    </div>
+                );
             }
 
             if (!ledgerId) {
