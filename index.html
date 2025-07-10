@@ -20,16 +20,16 @@
 
     <script type="text/babel" data-type="module">
         // --- Memuat Firebase SDK ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, serverTimestamp, updateDoc, arrayUnion, arrayRemove, increment, setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
         
         // --- Konfigurasi Firebase ---
         const firebaseConfig = {
            apiKey: "AIzaSyB91qA6AGjNBAEyIQSlHvN482esZKlP_Ok",
            authDomain: "dompet-pasangan-kita.firebaseapp.com",
            projectId: "dompet-pasangan-kita",
-           storageBucket: "dompet-pasangan-kita.appspot.com",
+           storageBucket: "dompet-pasangan-kita.firebasestorage.app",
            messagingSenderId: "54318864599",
            appId: "1:54318864599:web:3fc852b439a62577563892"
         };
