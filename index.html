@@ -4,10 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dompet & Target Bersama</title>
-    <!--
-      OPSIONAL: Jika Anda melanjutkan verifikasi Google, 
-      tempel kode verifikasi Anda di sini.
-    -->
+    
+    <!-- Kode Verifikasi Google Anda sudah dimasukkan di sini -->
     <meta name="google-site-verification" content="9b5idOC6Ce2_GFZmJStbYbVjZ1qelnaRPCkxhu9qpxM" />
 
     <!-- Memuat Library -->
@@ -27,7 +25,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         
         // --- Konfigurasi Firebase ---
-        // Kunci database Anda sudah dimasukkan di sini.
         const firebaseConfig = {
            apiKey: "AIzaSyB91qA6AGjNBAEyIQSlHvN482esZKlP_Ok",
            authDomain: "dompet-pasangan-kita.firebaseapp.com",
@@ -37,18 +34,14 @@
            appId: "1:54318864599:web:3fc852b439a62577563892"
         };
         
-        const isConfigValid = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("GANTI_DENGAN");
-
         // --- Inisialisasi Firebase ---
         let app, db, authInstance;
-        if (isConfigValid) {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                authInstance = getAuth(app);
-            } catch (e) {
-                console.error("Firebase initialization failed:", e);
-            }
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            authInstance = getAuth(app);
+        } catch (e) {
+            console.error("Firebase initialization failed:", e);
         }
 
         // --- Komponen Ikon ---
@@ -357,6 +350,9 @@
 
         // --- Komponen Utama Aplikasi ---
         function App() {
+            // FIX: Move isConfigValid inside the component so it's in the correct scope.
+            const isConfigValid = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("GANTI_DENGAN");
+
             const [user, setUser] = React.useState(null);
             const [ledgerId, setLedgerId] = React.useState(localStorage.getItem('ledgerId') || '');
             const [tempLedgerId, setTempLedgerId] = React.useState('');
