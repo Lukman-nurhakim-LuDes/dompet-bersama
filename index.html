@@ -4,8 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dompet & Target Bersama</title>
-    
-    <!-- Kode Verifikasi Google Anda sudah dimasukkan di sini -->
+    <!--
+      OPSIONAL: Jika Anda melanjutkan verifikasi Google, 
+      tempel kode verifikasi Anda di sini.
+    -->
     <meta name="google-site-verification" content="9b5idOC6Ce2_GFZmJStbYbVjZ1qelnaRPCkxhu9qpxM" />
 
     <!-- Memuat Library -->
@@ -20,16 +22,17 @@
 
     <script type="text/babel" data-type="module">
         // --- Memuat Firebase SDK ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, serverTimestamp, updateDoc, arrayUnion, arrayRemove, increment, setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         
         // --- Konfigurasi Firebase ---
+        // Kunci database Anda sudah dimasukkan di sini.
         const firebaseConfig = {
            apiKey: "AIzaSyB91qA6AGjNBAEyIQSlHvN482esZKlP_Ok",
            authDomain: "dompet-pasangan-kita.firebaseapp.com",
            projectId: "dompet-pasangan-kita",
-           storageBucket: "dompet-pasangan-kita.firebasestorage.app",
+           storageBucket: "dompet-pasangan-kita.appspot.com",
            messagingSenderId: "54318864599",
            appId: "1:54318864599:web:3fc852b439a62577563892"
         };
