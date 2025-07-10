@@ -26,15 +26,16 @@
         
         // --- Konfigurasi Firebase ---
         const dummyFirebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyA...dummy",
+            authDomain: "dummy.firebaseapp.com",
+            projectId: "dummy",
+            storageBucket: "dummy.appspot.com",
+            messagingSenderId: "12345",
+            appId: "1:12345:web:dummy"
         };
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : dummyFirebaseConfig;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const isLiveEnvironment = typeof __firebase_config === 'undefined';
 
         // --- Inisialisasi Firebase ---
         let app, db, authInstance;
@@ -114,7 +115,7 @@
 
             const COLORS = ['#3B82F6', '#EF4444', '#F97316', '#8B5CF6'];
             
-            if (isLoading) return <p className="text-center text-gray-500 mt-8">Memuat Dashboard...</p>;
+            if (isLoading && !isLiveEnvironment) return <p className="text-center text-gray-500 mt-8">Memuat Dashboard...</p>;
 
             return (
                 <div className="space-y-6">
@@ -420,6 +421,17 @@
             const joinLedger = () => { if (tempLedgerId) { setLedgerId(tempLedgerId); localStorage.setItem('ledgerId', tempLedgerId); } };
             const leaveLedger = () => { setLedgerId(''); localStorage.removeItem('ledgerId'); setActiveTab('dashboard');};
             const copyLedgerId = () => { const d = document.createElement('textarea'); d.value = ledgerId; document.body.appendChild(d); d.select(); document.execCommand('copy'); document.body.removeChild(d); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+
+            if (!db && isLiveEnvironment) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-100">
+                        <div className="text-center">
+                            <h2 className="text-xl font-bold text-red-600">Koneksi Gagal</h2>
+                            <p className="text-gray-600">Aplikasi ini tidak dapat terhubung ke database saat dijalankan di luar lingkungan yang semestinya.</p>
+                        </div>
+                    </div>
+                )
+            }
 
             if (!ledgerId) {
                 return (
