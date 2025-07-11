@@ -728,6 +728,7 @@
                                     <div key={t.id} className="bg-white/90 backdrop-blur-sm rounded-xl shadow-md p-4 flex items-center justify-between border border-gray-100">
                                         <div>
                                             <p className="font-semibold text-gray-800">{t.description}</p>
+                                            {/* Safely access toDate() */}
                                             <p className="text-sm text-gray-500">{t.createdAt && typeof t.createdAt.toDate === 'function' ? new Date(t.createdAt.toDate()).toLocaleDateString('id-ID') : 'Baru'}</p>
                                         </div>
                                         <div className="flex items-center space-x-4">
@@ -1593,7 +1594,7 @@
                             <p className="text-gray-700 mb-2">
                                 Aplikasi ini belum terhubung ke database. Anda perlu menyalin "kunci" konfigurasi dari proyek Firebase Anda.
                             </p>
-                            <p className="text-700 mb-6">
+                            <p className="text-gray-700 mb-6">
                                 Silakan buka file <code>index.html</code> di GitHub, cari variabel <code>firebaseConfig</code>, dan ganti isinya dengan kunci yang Anda dapatkan dari Firebase.
                             </p>
                             <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
@@ -1648,24 +1649,30 @@
                     {showProfileSetup && <ProfileSetup onProfileSubmit={handleProfileSubmit} user={user} />}
                     <header className="bg-white/70 backdrop-blur-sm shadow-md sticky top-0 z-20">
                         <div className="max-w-4xl mx-auto p-4">
-                            <div className="flex flex-col sm:flex-row justify-between items-center mb-4"> {/* Added flex-col and sm:flex-row */}
-                                <div className="flex items-center gap-3 mb-4 sm:mb-0"> {/* Added margin-bottom for mobile */}
+                            {/* Mengurangi padding vertikal di mobile dan menyesuaikan ukuran teks */}
+                            <div className="flex flex-col sm:flex-row justify-between items-center py-2 sm:py-4">
+                                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-0">
                                     {/* Menambahkan logo di sini */}
                                     <img
                                         src="uploaded:Gemini_Generated_Image_qi35cdqi35cdqi35.jpg-662755ab-9ede-4627-a24c-b7df549ee777"
                                         alt="Logo Dompet Bersama"
-                                        className="h-10 w-auto"
+                                        className="h-8 w-auto sm:h-10" /* Mengurangi tinggi logo di mobile */
                                         onerror="this.onerror=null; this.src='https://placehold.co/40x40/E2E8F0/4A5568?text=Logo';"
                                     />
-                                    <h1 className="text-xl font-bold text-blue-600">Ruang Bersama</h1>
+                                    <h1 className="text-lg font-bold text-blue-600 sm:text-xl">Ruang Bersama</h1> {/* Mengurangi ukuran teks di mobile */}
                                 </div>
-                                <MonthSelector selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
-                                <button onClick={handleLogout} className="text-sm text-red-500 hover:underline mt-4 sm:mt-0">Logout</button> {/* Added margin-top for mobile */}
+                                {/* Mengurangi ukuran MonthSelector di mobile */}
+                                <div className="flex items-center justify-center bg-white/50 backdrop-blur-sm p-1 rounded-lg sm:p-2">
+                                    <button onClick={() => changeMonth(-1)} className="px-2 py-0.5 rounded-md hover:bg-gray-200 transition duration-200 text-sm">‹</button>
+                                    <span className="font-semibold w-28 text-center text-gray-800 text-sm">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</span>
+                                    <button onClick={() => changeMonth(1)} className="px-2 py-0.5 rounded-md hover:bg-gray-200 transition duration-200 text-sm">›</button>
+                                </div>
+                                <button onClick={handleLogout} className="text-xs text-red-500 hover:underline mt-2 sm:mt-0">Logout</button> {/* Mengurangi ukuran teks di mobile */}
                             </div>
-                            <div className="flex justify-center items-center mt-4"> {/* Added margin-top */}
-                                <button onClick={copyLedgerId} className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-mono py-1 px-3 rounded-full">
+                            <div className="flex justify-center items-center mt-2"> {/* Mengurangi margin-top */}
+                                <button onClick={copyLedgerId} className="flex items-center space-x-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-mono py-0.5 px-2 rounded-full">
                                     <span>Kode: {ledgerId}</span>
-                                    {copied ? <span className="text-green-500 ml-2">Tersalin!</span> : <CopyIcon />}
+                                    {copied ? <span className="text-green-500 ml-1">Tersalin!</span> : <CopyIcon className="h-4 w-4" />} {/* Mengurangi ukuran ikon */}
                                 </button>
                             </div>
                         </div>
@@ -1683,29 +1690,29 @@
 
                     {/* Footer Navigasi seperti Instagram */}
                     <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
-                        <nav className="flex justify-around items-center h-16 max-w-xl mx-auto">
-                            <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'dashboard' ? 'text-indigo-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <HomeIcon className="h-6 w-6 mb-1" />
+                        <nav className="flex justify-around items-center h-14 sm:h-16 max-w-xl mx-auto"> {/* Mengurangi tinggi footer di mobile */}
+                            <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'dashboard' ? 'text-indigo-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <HomeIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" /> {/* Mengurangi ukuran ikon di mobile */}
                                 <span>Beranda</span>
                             </button>
-                            <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'finance' ? 'text-blue-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <WalletIcon className="h-6 w-6 mb-1" />
+                            <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'finance' ? 'text-blue-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <WalletIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Keuangan</span>
                             </button>
-                            <button onClick={() => setActiveTab('savings')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'savings' ? 'text-green-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <GiftIcon className="h-6 w-6 mb-1" />
+                            <button onClick={() => setActiveTab('savings')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'savings' ? 'text-green-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <GiftIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Tabungan</span>
                             </button>
-                            <button onClick={() => setActiveTab('habits')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'habits' ? 'text-purple-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <CalendarIcon className="h-6 w-6 mb-1" />
+                            <button onClick={() => setActiveTab('habits')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'habits' ? 'text-purple-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <CalendarIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Kebiasaan</span>
                             </button>
-                            <button onClick={() => setActiveTab('wishlist')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'wishlist' ? 'text-red-500 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <MapPinIcon className="h-6 w-6 mb-1" />
+                            <button onClick={() => setActiveTab('wishlist')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'wishlist' ? 'text-red-500 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <MapPinIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Wishlist</span>
                             </button>
-                            <button onClick={() => setActiveTab('diary')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'diary' ? 'text-yellow-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <BookOpenIcon className="h-6 w-6 mb-1" />
+                            <button onClick={() => setActiveTab('diary')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'diary' ? 'text-yellow-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <BookOpenIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Diary</span>
                             </button>
                         </nav>
