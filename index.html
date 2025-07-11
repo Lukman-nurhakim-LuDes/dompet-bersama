@@ -1282,7 +1282,7 @@
         const CoupleCalendar = ({ user, ledgerId, selectedDate, requestNotificationPermission }) => {
             // Implementasi kalender di sini
             return (
-                <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-100">
+                <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
                     <h2 className="text-xl font-semibold text-gray-800 mb-4">Kalender Pasangan - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
                     <p className="text-gray-600">Fungsionalitas kalender akan hadir di sini. Anda dapat menambahkan acara, tanggal penting, dan pengingat bersama.</p>
                     <button
@@ -1376,7 +1376,7 @@
             return (
                 <div className="flex items-center justify-center bg-white/50 backdrop-blur-sm p-0.5 rounded-lg sm:p-2">
                     <button onClick={() => changeMonth(-1)} className="px-1.5 py-0.5 rounded-md hover:bg-gray-200 transition duration-200 text-xs">‹</button>
-                    <span className="font-semibold w-24 text-center text-gray-800 text-xs">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</span>
+                    <span className="font-semibold w-20 text-center text-gray-800 text-xs">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</span>
                     <button onClick={() => changeMonth(1)} className="px-1.5 py-0.5 rounded-md hover:bg-gray-200 transition duration-200 text-xs">›</button>
                 </div>
             );
@@ -1658,21 +1658,17 @@
                             {/* Mengurangi padding vertikal di mobile dan menyesuaikan ukuran teks */}
                             <div className="flex flex-col sm:flex-row justify-between items-center py-0.5 sm:py-4"> {/* Mengurangi py lebih lanjut */}
                                 <div className="flex items-center gap-0.5 sm:gap-3 mb-1 sm:mb-0"> {/* Mengurangi gap dan mb lebih lanjut */}
-                                    {/* Menambahkan logo di sini */}
+                                    {/* Menggunakan URL placeholder publik untuk logo di header */}
                                     <img
-                                        src="uploaded:Gemini_Generated_Image_qi35cdqi35cdqi35.jpg-662755ab-9ede-4627-a24c-b7df549ee777"
+                                        src="https://placehold.co/40x40/E2E8F0/4A5568?text=Logo"
                                         alt="Logo Dompet Bersama"
                                         className="h-5 w-auto sm:h-10" /* Mengurangi tinggi logo di mobile */
-                                        onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/40x40/E2E8F0/4A5568?text=Logo'; }} /* Mengubah onerror menjadi onError */
+                                        onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/40x40/E2E8F0/4A5568?text=Error'; }} /* Fallback jika gambar gagal dimuat */
                                     />
                                     <h1 className="text-sm font-bold text-blue-600 sm:text-xl">Ruang Bersama</h1> {/* Mengurangi ukuran teks di mobile */}
                                 </div>
                                 {/* Mengurangi ukuran MonthSelector di mobile */}
-                                <div className="flex items-center justify-center bg-white/50 backdrop-blur-sm p-0.5 rounded-lg sm:p-2">
-                                    <button onClick={() => changeMonth(-1)} className="px-1.5 py-0.5 rounded-md hover:bg-gray-200 transition duration-200 text-xs">‹</button>
-                                    <span className="font-semibold w-20 text-center text-gray-800 text-xs">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</span> {/* Mengurangi w dan text-sm */}
-                                    <button onClick={() => changeMonth(1)} className="px-1.5 py-0.5 rounded-md hover:bg-gray-200 transition duration-200 text-xs">›</button>
-                                </div>
+                                <MonthSelector selectedDate={selectedDate} setSelectedDate={setSelectedDate} /> {/* Memastikan MonthSelector menerima prop */}
                                 <button onClick={handleLogout} className="text-xs text-red-500 hover:underline mt-0.5 sm:mt-0">Logout</button>
                             </div>
                             <div className="flex justify-center items-center mt-0.5">
@@ -1688,14 +1684,14 @@
                         {activeTab === 'finance' && <FinanceTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
                         {activeTab === 'savings' && <SavingsTracker user={user} ledgerId={ledgerId} />}
                         {activeTab === 'habits' && <HabitTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} />}
-                        {activeTab === 'calendar' && <CoupleCalendar user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} />}
+                        {activeTab === 'calendar' && <CoupleCalendar user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
                         {activeTab === 'diary' && <Diary user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
                         {activeTab === 'wishlist' && <TravelWishlist user={user} ledgerId={ledgerId} />}
                     </main>
 
                     {/* Footer Navigasi seperti Instagram */}
                     <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
-                        <nav className="flex justify-around items-center h-10 sm:h-16 max-w-xl mx-auto"> {/* Mengurangi tinggi footer di mobile */}
+                        <nav className="flex justify-around items-center h-10 sm:h-16 max-w-xl mx-auto">
                             <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'dashboard' ? 'text-indigo-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
                                 <HomeIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Beranda</span>
