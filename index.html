@@ -123,6 +123,10 @@
         // Ikon baru untuk Menu: Hamburger
         const MenuIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>;
         const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
+        // Icon untuk Budget
+        const ChartPieIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>;
+        // Icon untuk Shopping List
+        const ShoppingCartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
 
 
         // Helper function to recursively remove undefined values from an object
@@ -598,8 +602,22 @@
                                 </div>
                                 {goals.length > 0 ? (
                                     <div className="mt-4">
-                                        {goals.slice(0, 2).map(g => {
+                                        {goals.map(g => {
                                             const progress = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
+                                            // Calculate estimated time to target
+                                            const remaining = g.targetAmount - g.currentAmount;
+                                            let estimatedTime = 'N/A';
+                                            if (g.monthlyContribution > 0) { // Assuming a monthlyContribution field for estimation
+                                                const months = remaining / g.monthlyContribution;
+                                                if (months > 0) {
+                                                    estimatedTime = `${Math.ceil(months)} bulan`;
+                                                } else if (remaining <= 0) {
+                                                    estimatedTime = 'Tercapai!';
+                                                }
+                                            } else if (remaining <= 0) {
+                                                estimatedTime = 'Tercapai!';
+                                            }
+
                                             return (
                                                 <div key={g.id} className="mb-3">
                                                     <div className="flex justify-between text-sm font-medium">
@@ -609,6 +627,10 @@
                                                     <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
                                                         <div className="bg-green-500 h-2.5 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress > 100 ? 100 : progress}%` }}></div>
                                                     </div>
+                                                    <p className="text-xs text-gray-500 mt-1">Estimasi: {estimatedTime}</p>
+                                                    {progress >= 100 && (
+                                                        <p className="text-sm text-green-700 font-semibold mt-2">🎉 Target Tercapai!</p>
+                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -630,9 +652,12 @@
             const [description, setDescription] = React.useState('');
             const [amount, setAmount] = React.useState('');
             const [type, setType] = React.useState('pengeluaran');
+            const [category, setCategory] = React.useState(''); // New state for category
             const [isLoading, setIsLoading] = React.useState(true);
             const [error, setError] = React.useState('');
             const monthYear = getMonthYear(selectedDate);
+
+            const defaultCategories = ['Makanan', 'Transportasi', 'Hiburan', 'Tagihan', 'Belanja', 'Lain-lain']; // Example categories
 
             React.useEffect(() => {
                 if (!user || !ledgerId || !db) {
@@ -675,6 +700,7 @@
                         description,
                         amount: Number(amount),
                         type,
+                        category: category || 'Lain-lain', // Save category
                         userId: user.uid,
                         userName: user.name || 'Anonim', // Fallback if user.name is null
                         createdAt: serverTimestamp(),
@@ -682,6 +708,7 @@
                     });
                     setDescription('');
                     setAmount('');
+                    setCategory(''); // Reset category
                     setError('');
                 } catch (err) {
                     console.error("Error adding transaction:", err);
@@ -735,6 +762,12 @@
                         <form onSubmit={addTransaction} className="space-y-4">
                             <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Contoh: Belanja bulanan" className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" required />
                             <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Jumlah (misal: 50000)" className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" required />
+                            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                                <option value="">Pilih Kategori</option>
+                                {defaultCategories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
                             <div className="flex space-x-4">
                                 <label className={`flex-1 flex items-center justify-center p-3 border rounded-lg cursor-pointer transition duration-200 ${type === 'pengeluaran' ? 'bg-blue-100 border-blue-500 text-blue-800 shadow-sm' : 'bg-white hover:bg-gray-50'}`}>
                                     <input type="radio" name="type" value="pengeluaran" checked={type === 'pengeluaran'} onChange={(e) => setType(e.target.value)} className="hidden" />
@@ -759,10 +792,7 @@
                                     <div key={t.id} className="bg-white/90 backdrop-blur-sm rounded-xl shadow-md p-4 flex items-center justify-between border border-gray-100">
                                         <div>
                                             <p className="font-semibold text-gray-800">{t.description}</p>
-                                            {/* Safely access toDate() */}
-                                            <p className="text-sm text-gray-500">
-                                                {t.userName || 'Anonim'} pada {t.createdAt && typeof t.createdAt.toDate === 'function' ? new Date(t.createdAt.toDate()).toLocaleDateString('id-ID') : 'Baru'}
-                                            </p>
+                                            <p className="text-sm text-gray-500">{t.category && `Kategori: ${t.category} | `}{t.userName || 'Anonim'} pada {t.createdAt && typeof t.createdAt.toDate === 'function' ? new Date(t.createdAt.toDate()).toLocaleDateString('id-ID') : 'Baru'}</p>
                                         </div>
                                         <div className="flex items-center space-x-4">
                                             <p className={`font-bold ${t.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(t.amount)}</p>
@@ -788,6 +818,12 @@
 
             const daysInMonth = React.useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate(), [selectedDate]);
             const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+            // Helper function to get short day name (e.g., "Sen", "Sel")
+            const getShortDayName = (year, month, day) => {
+                const date = new Date(year, month, day);
+                return date.toLocaleDateString('id-ID', { weekday: 'short' });
+            };
 
             const scheduleHabitNotification = (title, day, time) => {
                 if (Notification.permission === "granted") {
@@ -891,6 +927,74 @@
                 try { await deleteDoc(doc(db, `ledgers/${ledgerId}/habits/${id}`)); } catch (err) { console.error("Error deleting habit:", err); }
             };
 
+            // Calculate daily progress percentage
+            const dailyProgress = React.useMemo(() => {
+                const progress = {};
+                const totalHabits = habits.length;
+                if (totalHabits === 0) {
+                    for (let i = 1; i <= daysInMonth; i++) {
+                        progress[i] = 0;
+                    }
+                    return progress;
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateString = `${monthYear}-${String(day).padStart(2, '0')}`;
+                    let completedCount = 0;
+                    habits.forEach(h => {
+                        if ((h.completions || []).includes(dateString)) {
+                            completedCount++;
+                        }
+                    });
+                    progress[day] = (completedCount / totalHabits) * 100;
+                }
+                return progress;
+            }, [habits, daysInMonth, monthYear]);
+
+            // Calculate monthly completion rate for each habit
+            const monthlyCompletionRate = React.useMemo(() => {
+                const rates = {};
+                habits.forEach(h => {
+                    const completedInMonth = (h.completions || []).filter(dateStr => dateStr.startsWith(monthYear)).length;
+                    rates[h.id] = (completedInMonth / daysInMonth) * 100;
+                });
+                return rates;
+            }, [habits, daysInMonth, monthYear]);
+
+            // Calculate streak for each habit
+            const calculateStreak = (completions) => {
+                if (!completions || completions.length === 0) return 0;
+
+                let streak = 0;
+                let currentDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                let todayString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+
+                // Check if today's habit is completed
+                if (completions.includes(todayString)) {
+                    streak = 1;
+                } else {
+                    // If today's habit is not completed, check yesterday
+                    currentDate.setDate(currentDate.getDate() - 1);
+                    todayString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+                    if (!completions.includes(todayString)) {
+                        return 0; // No streak if yesterday also not completed
+                    }
+                }
+
+                // Continue checking backwards
+                while (true) {
+                    currentDate.setDate(currentDate.getDate() - 1);
+                    const prevDayString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+                    if (completions.includes(prevDayString)) {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+                return streak;
+            };
+
+
             return (
                 <>
                     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
@@ -910,7 +1014,14 @@
                                     <thead>
                                         <tr className="bg-gray-50">
                                             <th className="p-2 sticky left-0 bg-gray-50 z-10">Kebiasaan</th>
-                                            {daysArray.map(day => <th key={day} className="p-2 w-10">{day}</th>)}
+                                            {daysArray.map(day => (
+                                                <th key={day} className="p-2 w-10">
+                                                    <div className="flex flex-col items-center">
+                                                        <span>{getShortDayName(selectedDate.getFullYear(), selectedDate.getMonth(), day)}</span>
+                                                        <span className="text-xs font-normal text-gray-500">{day}</span>
+                                                    </div>
+                                                </th>
+                                            ))}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -920,6 +1031,8 @@
                                                     <div className="flex flex-col items-start">
                                                         <span className="truncate pr-2 text-gray-800">{h.name} {h.reminderTime ? `(${h.reminderTime})` : ''}</span>
                                                         <span className="text-xs text-gray-500">Oleh: {h.userName || 'Anonim'}</span>
+                                                        <span className="text-xs text-blue-500">Streak: {calculateStreak(h.completions)} hari</span>
+                                                        <span className="text-xs text-green-500">Bulan Ini: {monthlyCompletionRate[h.id].toFixed(0)}%</span>
                                                     </div>
                                                     <button onClick={() => deleteHabit(h.id)} className="text-gray-400 hover:text-red-500 transition duration-200"><TrashIcon /></button>
                                                 </td>
@@ -935,6 +1048,16 @@
                                             </tr>
                                         ))}
                                     </tbody>
+                                    <tfoot>
+                                        <tr className="bg-gray-100 font-bold">
+                                            <td className="p-2 text-left sticky left-0 bg-gray-100 z-10 text-gray-700">Progres Harian (%)</td>
+                                            {daysArray.map(day => (
+                                                <td key={`progress-${day}`} className="p-2 border-l border-gray-200 text-gray-800">
+                                                    {dailyProgress[day].toFixed(0)}%
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                         )}
@@ -948,6 +1071,7 @@
             const [goals, setGoals] = React.useState([]);
             const [newGoalName, setNewGoalName] = React.useState('');
             const [newTargetAmount, setNewTargetAmount] = React.useState('');
+            const [newMonthlyContribution, setNewMonthlyContribution] = React.useState(''); // New field for monthly contribution
             const [amountToAdd, setAmountToAdd] = React.useState({});
             const [isLoading, setIsLoading] = React.useState(true);
             const [error, setError] = React.useState('');
@@ -987,12 +1111,14 @@
                         name: newGoalName,
                         targetAmount: Number(newTargetAmount),
                         currentAmount: 0,
+                        monthlyContribution: Number(newMonthlyContribution) || 0, // Save monthly contribution
                         createdAt: serverTimestamp(),
                         userId: user.uid,
                         userName: user.name || 'Anonim' // Store userName with goal
                     });
                     setNewGoalName('');
                     setNewTargetAmount('');
+                    setNewMonthlyContribution(''); // Reset monthly contribution
                     setError('');
                 } catch (err) {
                     console.error("Error adding goal:", err);
@@ -1064,6 +1190,7 @@
                         <form onSubmit={addGoal} className="space-y-3">
                             <input type="text" value={newGoalName} onChange={(e) => setNewGoalName(e.target.value)} placeholder="Contoh: Dana liburan" className="w-full p-3 border rounded-lg focus:ring-green-500 focus:border-green-500 transition duration-200" required />
                             <input type="number" value={newTargetAmount} onChange={(e) => setNewTargetAmount(e.target.value)} placeholder="Target (misal: 5000000)" className="w-full p-3 border rounded-lg focus:ring-green-500 focus:border-green-500 transition duration-200" required />
+                            <input type="number" value={newMonthlyContribution} onChange={(e) => setNewMonthlyContribution(e.target.value)} placeholder="Kontribusi Bulanan (opsional)" className="w-full p-3 border rounded-lg focus:ring-green-500 focus:border-green-500 transition duration-200" />
                             <button type="submit" className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-3 px-4 rounded-lg hover:from-green-600 hover:to-green-700 transition duration-300 shadow-custom-green">
                                 <PlusIcon /><span>Tambah Target</span>
                             </button>
@@ -1076,6 +1203,20 @@
                             <div className="space-y-4">
                                 {goals.map(g => {
                                     const progress = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
+                                    // Calculate estimated time to target
+                                    const remaining = g.targetAmount - g.currentAmount;
+                                    let estimatedTime = 'N/A';
+                                    if (g.monthlyContribution > 0) {
+                                        const months = remaining / g.monthlyContribution;
+                                        if (months > 0) {
+                                            estimatedTime = `${Math.ceil(months)} bulan`;
+                                        } else if (remaining <= 0) {
+                                            estimatedTime = 'Tercapai!';
+                                        }
+                                    } else if (remaining <= 0) {
+                                        estimatedTime = 'Tercapai!';
+                                    }
+
                                     return (
                                         <div key={g.id} className="bg-white/90 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-100">
                                             <div className="flex justify-between items-start">
@@ -1083,12 +1224,17 @@
                                                     <p className="font-semibold text-gray-800">{g.name}</p>
                                                     <p className="text-sm text-green-600 font-medium">{formatCurrency(g.currentAmount)} / {formatCurrency(g.targetAmount)}</p>
                                                     <p className="text-xs text-gray-500">Oleh: {g.userName || 'Anonim'}</p>
+                                                    {g.monthlyContribution > 0 && <p className="text-xs text-gray-500">Kontribusi Bulanan: {formatCurrency(g.monthlyContribution)}</p>}
+                                                    <p className="text-xs text-gray-500">Estimasi Capai: {estimatedTime}</p>
                                                 </div>
                                                 <button onClick={() => deleteGoal(g.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-full transition duration-200"><TrashIcon /></button>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
                                                 <div className="bg-green-500 h-2.5 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress > 100 ? 100 : progress}%` }}></div>
                                             </div>
+                                            {progress >= 100 && (
+                                                <p className="text-sm text-green-700 font-semibold mt-2">🎉 Target Tercapai!</p>
+                                            )}
                                             <div className="flex space-x-2 mt-3">
                                                 <input type="number" value={amountToAdd[g.id] || ''} onChange={(e) => setAmountToAdd(prev => ({ ...prev, [g.id]: e.target.value }))} placeholder="Jumlah" className="flex-grow p-2 border rounded-lg text-sm focus:ring-green-500 focus:border-green-500 transition duration-200" />
                                                 <button onClick={() => addFunds(g.id)} className="bg-gray-200 font-semibold p-2 rounded-lg hover:bg-gray-300 text-sm transition duration-200">Tambah</button>
@@ -1108,6 +1254,8 @@
             const [wishlistItems, setWishlistItems] = React.useState([]);
             const [newDestination, setNewDestination] = React.useState('');
             const [newDescription, setNewDescription] = React.useState('');
+            const [newEstimatedCost, setNewEstimatedCost] = React.useState(''); // New field
+            const [newLinkedSavingsGoal, setNewLinkedSavingsGoal] = React.useState(''); // New field
             const [newPhoto, setNewPhoto] = React.useState(null); // Base64 string
             const [photoPreview, setPhotoPreview] = React.useState(null);
             const [isLoading, setIsLoading] = React.useState(true);
@@ -1155,13 +1303,15 @@
                     await addDoc(collection(db, `ledgers/${ledgerId}/travelWishlist`), {
                         destination: newDestination,
                         description: newDescription,
+                        estimatedCost: Number(newEstimatedCost) || 0, // Save estimated cost
+                        linkedSavingsGoal: newLinkedSavingsGoal || null, // Save linked savings goal
                         photoBase64: newPhoto || null, // Store Base64 or null
                         visited: false, // New field: default to false
                         userId: user.uid,
                         userName: user.name || 'Anonim',
                         createdAt: serverTimestamp()
                     });
-                    setNewDestination(''); setNewDescription(''); setNewPhoto(null); setPhotoPreview(null); setError('');
+                    setNewDestination(''); setNewDescription(''); setNewEstimatedCost(''); setNewLinkedSavingsGoal(''); setNewPhoto(null); setPhotoPreview(null); setError('');
                     if (fileInputRef.current) fileInputRef.current.value = ''; // Clear file input
                 } catch (err) { console.error("Error adding wishlist item:", err); setError("Gagal menambah item wishlist."); }
             };
@@ -1190,6 +1340,8 @@
                         <form onSubmit={addWishlistItem} className="space-y-4">
                             <input type="text" value={newDestination} onChange={(e) => setNewDestination(e.target.value)} placeholder="Destinasi (misal: Bali, Tokyo)" className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" required />
                             <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Mengapa Anda ingin pergi ke sana?" className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200 min-h-[80px]"></textarea>
+                            <input type="number" value={newEstimatedCost} onChange={(e) => setNewEstimatedCost(e.target.value)} placeholder="Estimasi Biaya (misal: 10000000)" className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" />
+                            <input type="text" value={newLinkedSavingsGoal} onChange={(e) => setNewLinkedSavingsGoal(e.target.value)} placeholder="Tautan ke Target Tabungan (opsional)" className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" />
                             <div className="flex items-center space-x-4">
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                                 {photoPreview && (
@@ -1229,6 +1381,8 @@
                                                 </div>
                                             </div>
                                             <p className={`text-sm text-gray-700 mb-2 ${item.visited ? 'line-through text-gray-500' : ''}`}>{item.description}</p>
+                                            {item.estimatedCost > 0 && <p className="text-sm text-gray-700">Estimasi Biaya: {formatCurrency(item.estimatedCost)}</p>}
+                                            {item.linkedSavingsGoal && <p className="text-sm text-gray-700">Terkait Tabungan: {item.linkedSavingsGoal}</p>}
                                             <p className="text-xs text-gray-500">Ditambahkan oleh {item.userName || 'Anonim'} pada {item.createdAt && typeof item.createdAt.toDate === 'function' ? new Date(item.createdAt.toDate()).toLocaleDateString('id-ID') : 'Baru'}</p>
                                         </div>
                                     </div>
@@ -1244,6 +1398,7 @@
         const Diary = ({ user, ledgerId, selectedDate, setFirestoreError }) => {
             const [diaryEntries, setDiaryEntries] = React.useState([]);
             const [newEntryText, setNewEntryText] = React.useState('');
+            const [newTags, setNewTags] = React.useState(''); // New state for tags
             const [isLoading, setIsLoading] = React.useState(true);
             const [error, setError] = React.useState('');
             const monthYear = getMonthYear(selectedDate);
@@ -1287,6 +1442,7 @@
                 try {
                     const entryData = {
                         text: newEntryText,
+                        tags: newTags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''), // Save tags as array
                         userId: user.uid,
                         userName: user.name || 'Anonim',
                         createdAt: serverTimestamp(),
@@ -1294,6 +1450,7 @@
                     };
                     await addDoc(collection(db, `ledgers/${ledgerId}/diaryEntries`), removeUndefined(entryData));
                     setNewEntryText('');
+                    setNewTags(''); // Reset tags
                     setError('');
                 } catch (err) {
                     console.error("Error adding diary entry:", err);
@@ -1324,6 +1481,13 @@
                                 rows="6"
                                 required
                             ></textarea>
+                            <input
+                                type="text"
+                                value={newTags}
+                                onChange={(e) => setNewTags(e.target.value)}
+                                placeholder="Tags (pisahkan dengan koma, misal: senang, kerja, keluarga)"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-yellow-500 focus:border-yellow-500 transition duration-200"
+                            />
                             <button
                                 type="submit"
                                 className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-bold py-3 px-4 rounded-lg hover:from-yellow-600 hover:to-yellow-700 transition duration-300 flex items-center justify-center shadow-custom-yellow"
@@ -1341,9 +1505,18 @@
                                 {diaryEntries.map(entry => (
                                     <div key={entry.id} className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4">
                                         <div className="flex justify-between items-start mb-2">
-                                            <p className="text-sm text-gray-500">
-                                                {entry.userName || 'Anonim'} pada {entry.createdAt && typeof entry.createdAt.toDate === 'function' ? new Date(entry.createdAt.toDate()).toLocaleDateString('id-ID') : 'Tidak Diketahui'}
-                                            </p>
+                                            <div>
+                                                <p className="text-sm text-gray-500">
+                                                    {entry.userName || 'Anonim'} pada {entry.createdAt && typeof entry.createdAt.toDate === 'function' ? new Date(entry.createdAt.toDate()).toLocaleDateString('id-ID') : 'Tidak Diketahui'}
+                                                </p>
+                                                {entry.tags && entry.tags.length > 0 && (
+                                                    <div className="mt-1 flex flex-wrap gap-1">
+                                                        {entry.tags.map((tag, index) => (
+                                                            <span key={index} className="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">#{tag}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             <button onClick={() => deleteDiaryEntry(entry.id)} className="text-gray-400 hover:text-red-500 transition duration-200">
                                                 <TrashIcon />
                                             </button>
@@ -1365,9 +1538,28 @@
             const [newEventDate, setNewEventDate] = React.useState(selectedDate.toISOString().split('T')[0]); // Default to current date
             const [newEventTime, setNewEventTime] = React.useState('');
             const [newEventDescription, setNewEventDescription] = React.useState('');
+            const [newEventCategory, setNewEventCategory] = React.useState(''); // New state for event category
             const [isLoading, setIsLoading] = React.useState(true);
             const [error, setError] = React.useState('');
             const monthYear = getMonthYear(selectedDate);
+
+            const daysInMonth = React.useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate(), [selectedDate]);
+            const firstDayOfMonth = React.useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay(), [selectedDate]); // 0 for Sunday, 1 for Monday
+            const calendarDays = React.useMemo(() => {
+                const days = [];
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    days.push(null); // Placeholder for days before the 1st
+                }
+                for (let i = 1; i <= daysInMonth; i++) {
+                    days.push(i);
+                }
+                return days;
+            }, [daysInMonth, firstDayOfMonth]);
+
+            const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']; // Short day names
+
+            // Example event categories
+            const eventCategories = ['Ulang Tahun', 'Janji Temu', 'Liburan', 'Pekerjaan', 'Pribadi', 'Lain-lain'];
 
             // Effect untuk memuat acara dari Firestore
             React.useEffect(() => {
@@ -1413,6 +1605,7 @@
                         date: newEventDate,
                         time: newEventTime || null,
                         description: newEventDescription || null,
+                        category: newEventCategory || null, // Save event category
                         userId: user.uid,
                         userName: user.name || 'Anonim',
                         createdAt: serverTimestamp(),
@@ -1423,6 +1616,7 @@
                     setNewEventDate(selectedDate.toISOString().split('T')[0]); // Reset to current selected date
                     setNewEventTime('');
                     setNewEventDescription('');
+                    setNewEventCategory(''); // Reset category
                     setError('');
 
                     // Jadwalkan notifikasi jika waktu diatur dan izin diberikan
@@ -1491,6 +1685,12 @@
                                     className="w-1/2 p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                                 />
                             </div>
+                            <select value={newEventCategory} onChange={(e) => setNewEventCategory(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                                <option value="">Pilih Kategori</option>
+                                {eventCategories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
                             <textarea
                                 value={newEventDescription}
                                 onChange={(e) => setNewEventDescription(e.target.value)}
@@ -1505,24 +1705,309 @@
                     </div>
 
                     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
-                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Acara Bulan Ini - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
-                        {isLoading ? <p className="text-center text-gray-500">Memuat acara...</p> : events.length === 0 ? <div className="text-center text-gray-500 p-8">Belum ada acara yang dijadwalkan bulan ini. Tambahkan acara pertama Anda di atas!</div> : (
-                            <div className="space-y-4">
-                                {events.map(event => (
-                                    <div key={event.id} className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <h3 className="font-bold text-lg text-gray-800">{event.title}</h3>
-                                                <p className="text-sm text-gray-600">
-                                                    {new Date(event.date).toLocaleDateString('id-ID')} {event.time ? `pukul ${event.time}` : ''}
-                                                </p>
-                                                {event.description && <p className="text-sm text-gray-700 mt-1">{event.description}</p>}
-                                                <p className="text-xs text-gray-500 mt-1">Ditambahkan oleh {event.userName || 'Anonim'}</p>
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Kalender - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
+                        {isLoading ? <p className="text-center text-gray-500">Memuat acara...</p> : (
+                            <div className="grid grid-cols-7 gap-1 text-center text-sm">
+                                {dayNames.map(day => (
+                                    <div key={day} className="font-bold text-gray-700 py-2">{day}</div>
+                                ))}
+                                {calendarDays.map((day, index) => {
+                                    const dayEvents = day ? events.filter(event => {
+                                        const eventDay = new Date(event.date).getDate();
+                                        return eventDay === day;
+                                    }) : [];
+                                    const isToday = day && new Date().toDateString() === new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day).toDateString();
+
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`p-1 h-20 border border-gray-200 rounded-md flex flex-col items-center overflow-hidden ${day ? 'bg-white' : 'bg-gray-50'} ${isToday ? 'border-blue-500 ring-2 ring-blue-300' : ''}`}
+                                        >
+                                            <span className={`font-semibold ${isToday ? 'text-blue-700' : 'text-gray-800'}`}>{day}</span>
+                                            <div className="flex-grow overflow-y-auto w-full">
+                                                {dayEvents.map(event => (
+                                                    <div key={event.id} className={`text-xs truncate w-full px-1 py-0.5 rounded-sm mt-0.5
+                                                        ${event.category === 'Ulang Tahun' ? 'bg-pink-100 text-pink-800' :
+                                                        event.category === 'Janji Temu' ? 'bg-purple-100 text-purple-800' :
+                                                        event.category === 'Liburan' ? 'bg-green-100 text-green-800' :
+                                                        'bg-blue-100 text-blue-800'}`}>
+                                                        {event.time && <span className="mr-1">{event.time}</span>}{event.title}
+                                                    </div>
+                                                ))}
                                             </div>
-                                            <button onClick={() => deleteEvent(event.id)} className="text-gray-400 hover:text-red-500 transition duration-200">
-                                                <TrashIcon />
-                                            </button>
                                         </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        <button
+                            onClick={requestNotificationPermission}
+                            className="mt-4 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200"
+                        >
+                            Aktifkan Notifikasi
+                        </button>
+                    </div>
+                </>
+            );
+        };
+
+
+        // --- Komponen BudgetTracker (Baru) ---
+        const BudgetTracker = ({ user, ledgerId, selectedDate, setFirestoreError }) => {
+            const [budgetCategories, setBudgetCategories] = React.useState([]);
+            const [newCategoryName, setNewCategoryName] = React.useState('');
+            const [newBudgetAmount, setNewBudgetAmount] = React.useState('');
+            const [transactions, setTransactions] = React.useState([]); // To calculate spending against budget
+            const [isLoading, setIsLoading] = React.useState(true);
+            const [error, setError] = React.useState('');
+            const monthYear = getMonthYear(selectedDate);
+
+            // Fetch budget categories
+            React.useEffect(() => {
+                if (!user || !ledgerId || !db) { setIsLoading(false); setBudgetCategories([]); return; }
+                setIsLoading(true);
+                const collectionPath = `ledgers/${ledgerId}/budgets`;
+                const q = query(collection(db, collectionPath), where('monthYear', '==', monthYear));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    setBudgetCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    setIsLoading(false);
+                }, (err) => {
+                    console.error("Firestore Error:", err);
+                    if (err.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat anggaran. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
+                    setError("Gagal memuat anggaran.");
+                    setIsLoading(false);
+                });
+                return () => unsubscribe();
+            }, [user, ledgerId, monthYear, setFirestoreError]);
+
+            // Fetch transactions for current month to calculate spending
+            React.useEffect(() => {
+                if (!user || !ledgerId || !db) { setTransactions([]); return; }
+                const transCollectionPath = `ledgers/${ledgerId}/transactions`;
+                const q = query(collection(db, transCollectionPath), where('monthYear', '==', monthYear), where('type', '==', 'pengeluaran'));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                }, (err) => {
+                    console.error("Firestore Error fetching transactions for budget:", err);
+                });
+                return () => unsubscribe();
+            }, [user, ledgerId, monthYear]);
+
+            const addBudgetCategory = async (e) => {
+                e.preventDefault();
+                if (!newCategoryName.trim() || !newBudgetAmount || !user || !ledgerId || !db) {
+                    setError("Nama kategori atau jumlah anggaran tidak boleh kosong.");
+                    return;
+                }
+                try {
+                    await addDoc(collection(db, `ledgers/${ledgerId}/budgets`), {
+                        name: newCategoryName,
+                        budgetAmount: Number(newBudgetAmount),
+                        monthYear: monthYear,
+                        userId: user.uid,
+                        userName: user.name || 'Anonim',
+                        createdAt: serverTimestamp()
+                    });
+                    setNewCategoryName('');
+                    setNewBudgetAmount('');
+                    setError('');
+                } catch (err) {
+                    console.error("Error adding budget category:", err);
+                    setError("Gagal menambah kategori anggaran.");
+                }
+            };
+
+            const deleteBudgetCategory = async (id) => {
+                if (!db) return;
+                try {
+                    await deleteDoc(doc(db, `ledgers/${ledgerId}/budgets/${id}`));
+                } catch (err) {
+                    console.error("Error deleting budget category:", err);
+                    setError("Gagal menghapus kategori anggaran.");
+                }
+            };
+
+            const getSpentAmount = (categoryName) => {
+                return transactions
+                    .filter(t => t.category === categoryName)
+                    .reduce((sum, t) => sum + Number(t.amount), 0);
+            };
+
+            return (
+                <>
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Atur Anggaran Bulanan - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
+                        <form onSubmit={addBudgetCategory} className="space-y-4">
+                            <input
+                                type="text"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                placeholder="Nama Kategori (misal: Makanan)"
+                                className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                required
+                            />
+                            <input
+                                type="number"
+                                value={newBudgetAmount}
+                                onChange={(e) => setNewBudgetAmount(e.target.value)}
+                                placeholder="Jumlah Anggaran (misal: 1000000)"
+                                className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                required
+                            />
+                            <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 flex items-center justify-center shadow-custom-blue">
+                                <PlusIcon /><span>Tambah Anggaran</span>
+                            </button>
+                        </form>
+                        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                    </div>
+
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Ringkasan Anggaran</h2>
+                        {isLoading ? <p className="text-center text-gray-500">Memuat anggaran...</p> : budgetCategories.length === 0 ? <div className="text-center text-gray-500 p-8">Belum ada kategori anggaran. Tambahkan anggaran pertama Anda di atas!</div> : (
+                            <div className="space-y-4">
+                                {budgetCategories.map(budget => {
+                                    const spent = getSpentAmount(budget.name);
+                                    const remaining = budget.budgetAmount - spent;
+                                    const progress = (spent / budget.budgetAmount) * 100;
+                                    const isOverBudget = remaining < 0;
+
+                                    return (
+                                        <div key={budget.id} className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <p className="font-semibold text-gray-800">{budget.name}</p>
+                                                    <p className="text-sm text-gray-600">Anggaran: {formatCurrency(budget.budgetAmount)}</p>
+                                                    <p className="text-sm text-gray-600">Terpakai: {formatCurrency(spent)}</p>
+                                                    <p className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>Sisa: {formatCurrency(remaining)}</p>
+                                                    <p className="text-xs text-gray-500">Dibuat oleh: {budget.userName || 'Anonim'}</p>
+                                                </div>
+                                                <button onClick={() => deleteBudgetCategory(budget.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-full transition duration-200"><TrashIcon /></button>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
+                                                <div className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isOverBudget ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${progress > 100 ? 100 : progress}%` }}></div>
+                                            </div>
+                                            {isOverBudget && <p className="text-xs text-red-500 mt-1">Anda melebihi anggaran untuk kategori ini!</p>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </>
+            );
+        };
+
+        // --- Komponen ShoppingList (Baru) ---
+        const ShoppingList = ({ user, ledgerId, setFirestoreError }) => {
+            const [listItems, setListItems] = React.useState([]);
+            const [newItemName, setNewItemName] = React.useState('');
+            const [isLoading, setIsLoading] = React.useState(true);
+            const [error, setError] = React.useState('');
+
+            React.useEffect(() => {
+                if (!user || !ledgerId || !db) { setIsLoading(false); setListItems([]); return; }
+                setIsLoading(true);
+                const collectionPath = `ledgers/${ledgerId}/shoppingList`;
+                const q = query(collection(db, collectionPath));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    setListItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    setIsLoading(false);
+                }, (err) => {
+                    console.error("Firestore Error:", err);
+                    if (err.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat daftar belanja. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
+                    setError("Gagal memuat daftar belanja.");
+                    setIsLoading(false);
+                });
+                return () => unsubscribe();
+            }, [user, ledgerId, setFirestoreError]);
+
+            const addListItem = async (e) => {
+                e.preventDefault();
+                if (!newItemName.trim() || !user || !ledgerId || !db) {
+                    setError("Nama item tidak boleh kosong.");
+                    return;
+                }
+                try {
+                    await addDoc(collection(db, `ledgers/${ledgerId}/shoppingList`), {
+                        name: newItemName,
+                        purchased: false,
+                        userId: user.uid,
+                        userName: user.name || 'Anonim',
+                        createdAt: serverTimestamp()
+                    });
+                    setNewItemName('');
+                    setError('');
+                } catch (err) {
+                    console.error("Error adding list item:", err);
+                    setError("Gagal menambah item.");
+                }
+            };
+
+            const togglePurchasedStatus = async (item) => {
+                if (!db) return;
+                try {
+                    await updateDoc(doc(db, `ledgers/${ledgerId}/shoppingList/${item.id}`), {
+                        purchased: !item.purchased
+                    });
+                } catch (err) {
+                    console.error("Error toggling purchased status:", err);
+                    setError("Gagal memperbarui status item.");
+                }
+            };
+
+            const deleteListItem = async (id) => {
+                if (!db) return;
+                try {
+                    await deleteDoc(doc(db, `ledgers/${ledgerId}/shoppingList/${id}`));
+                } catch (err) {
+                    console.error("Error deleting list item:", err);
+                    setError("Gagal menghapus item.");
+                }
+            };
+
+            return (
+                <>
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Tambah Item Belanja</h2>
+                        <form onSubmit={addListItem} className="space-y-3">
+                            <input
+                                type="text"
+                                value={newItemName}
+                                onChange={(e) => setNewItemName(e.target.value)}
+                                placeholder="Nama Item (misal: Susu, Roti)"
+                                className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                required
+                            />
+                            <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 flex items-center justify-center shadow-custom-blue">
+                                <PlusIcon /><span>Tambah Item</span>
+                            </button>
+                        </form>
+                        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                    </div>
+
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Daftar Belanja Anda</h2>
+                        {isLoading ? <p className="text-center text-gray-500">Memuat daftar...</p> : listItems.length === 0 ? <div className="text-center text-gray-500 p-8">Daftar belanja Anda kosong. Tambahkan item pertama Anda di atas!</div> : (
+                            <div className="space-y-3">
+                                {listItems.map(item => (
+                                    <div key={item.id} className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between">
+                                        <div className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={item.purchased || false}
+                                                onChange={() => togglePurchasedStatus(item)}
+                                                className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer mr-3"
+                                                title={item.purchased ? "Sudah Dibeli" : "Tandai Sudah Dibeli"}
+                                            />
+                                            <p className={`font-semibold text-gray-800 ${item.purchased ? 'line-through text-gray-500' : ''}`}>{item.name}</p>
+                                        </div>
+                                        <button onClick={() => deleteListItem(item.id)} className="text-gray-400 hover:text-red-500 p-2 rounded-full transition duration-200">
+                                            <TrashIcon />
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -1651,6 +2136,10 @@
                                 <WalletIcon className="h-6 w-6 mb-1" />
                                 <span className="text-xs font-medium">Keuangan</span>
                             </button>
+                            <button onClick={() => handleTabClick('budget')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'budget' ? 'bg-blue-100 text-blue-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                                <ChartPieIcon className="h-6 w-6 mb-1" />
+                                <span className="text-xs font-medium">Anggaran</span>
+                            </button>
                             <button onClick={() => handleTabClick('savings')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'savings' ? 'bg-green-100 text-green-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
                                 <GiftIcon className="h-6 w-6 mb-1" />
                                 <span className="text-xs font-medium">Tabungan</span>
@@ -1670,6 +2159,10 @@
                             <button onClick={() => handleTabClick('diary')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'diary' ? 'bg-yellow-100 text-yellow-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
                                 <BookOpenIcon className="h-6 w-6 mb-1" />
                                 <span className="text-xs font-medium">Diary</span>
+                            </button>
+                            <button onClick={() => handleTabClick('shopping')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'shopping' ? 'bg-green-100 text-green-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                                <ShoppingCartIcon className="h-6 w-6 mb-1" />
+                                <span className="text-xs font-medium">Belanja</span>
                             </button>
                         </nav>
                     </div>
@@ -1994,11 +2487,13 @@
                     <main className="max-w-4xl mx-auto p-4">
                         {activeTab === 'dashboard' && <Dashboard user={user} ledgerId={ledgerId} setActiveTab={setActiveTab} ledgerDoc={ledgerDoc} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
                         {activeTab === 'finance' && <FinanceTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
+                        {activeTab === 'budget' && <BudgetTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
                         {activeTab === 'savings' && <SavingsTracker user={user} ledgerId={ledgerId} setFirestoreError={setFirestoreError} />}
                         {activeTab === 'habits' && <HabitTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} setFirestoreError={setFirestoreError} />}
                         {activeTab === 'calendar' && <EventsCalendar user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} setFirestoreError={setFirestoreError} />}
-                        {activeTab === 'diary' && <Diary user={user} ledgerId={ledgerId} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
                         {activeTab === 'wishlist' && <TravelWishlist user={user} ledgerId={ledgerId} setFirestoreError={setFirestoreError} />}
+                        {activeTab === 'diary' && <Diary user={user} ledgerId={ledgerId} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
+                        {activeTab === 'shopping' && <ShoppingList user={user} ledgerId={ledgerId} setFirestoreError={setFirestoreError} />}
                     </main>
 
                     {/* Footer Navigation (now a single menu button) */}
