@@ -8,6 +8,13 @@
     <!-- Kode Verifikasi Google Anda sudah dimasukkan di sini -->
     <meta name="google-site-verification" content="9b5idOC6Ce2_GFZmJStbYbVjZ1qelnaRPCkxhu9qpxM" />
 
+    <!-- Icon untuk Layar Utama (iOS) -->
+    <!-- Menggunakan logo hitam yang diunggah oleh pengguna -->
+    <link rel="apple-touch-icon" href="uploaded:original-b142c02ab6f9b991e3b36855fa55d403.webp-233117a0-40ae-4400-af34-da550a46276e">
+    <!-- Manifest untuk Progressive Web App (PWA) untuk Android dan lainnya -->
+    <!-- Pastikan Anda membuat file manifest.json di root direktori Anda -->
+    <link rel="manifest" href="/manifest.json">
+
     <!-- Memuat Library -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -45,6 +52,20 @@
         }
         .tab-active span {
             font-weight: 600;
+        }
+        /* Custom shadow for diary button */
+        .shadow-custom-yellow {
+            box-shadow: 0 10px 15px -3px rgba(252, 211, 77, 0.1), 0 4px 6px -2px rgba(252, 211, 77, 0.05);
+        }
+        /* Custom shadow for financial cards */
+        .shadow-custom-card-blue {
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06);
+        }
+        .shadow-custom-card-green {
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1), 0 2px 4px -1px rgba(16, 185, 129, 0.06);
+        }
+        .shadow-custom-card-purple {
+            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.1), 0 2px 4px -1px rgba(139, 92, 246, 0.06);
         }
     </style>
 </head>
@@ -640,8 +661,37 @@
                 }
             };
 
+            // Calculate current month's financials for the card
+            const { totalIncome, totalExpense, balance } = React.useMemo(() => {
+                const income = transactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + Number(t.amount), 0);
+                const expense = transactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + Number(t.amount), 0);
+                return { totalIncome: income, totalExpense: expense, balance: income - expense };
+            }, [transactions]);
+
             return (
                 <>
+                    {/* Financial Summary Card */}
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-xl shadow-custom-card-blue p-6 mb-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold">Ringkasan Keuangan</h2>
+                            <WalletIcon className="h-8 w-8 text-blue-200" />
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm opacity-80">Saldo Bersih Bulan Ini</p>
+                            <p className="text-3xl font-bold">{formatCurrency(balance)}</p>
+                        </div>
+                        <div className="flex justify-between mt-4 text-sm">
+                            <div>
+                                <p className="opacity-80">Pemasukan</p>
+                                <p className="font-semibold">{formatCurrency(totalIncome)}</p>
+                            </div>
+                            <div>
+                                <p className="opacity-80">Pengeluaran</p>
+                                <p className="font-semibold">{formatCurrency(totalExpense)}</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Tambah Transaksi Baru</h2>
                         <form onSubmit={addTransaction} className="space-y-4">
@@ -921,8 +971,38 @@
                 }
             };
 
+            // Calculate total saved and total target for the card
+            const { totalSaved, totalTarget } = React.useMemo(() => {
+                const saved = goals.reduce((sum, g) => sum + Number(g.currentAmount), 0);
+                const target = goals.reduce((sum, g) => sum + Number(g.targetAmount), 0);
+                return { totalSaved: saved, totalTarget: target };
+            }, [goals]);
+
+
             return (
                 <>
+                    {/* Savings Summary Card */}
+                    <div className="bg-gradient-to-br from-green-500 to-green-700 text-white rounded-xl shadow-custom-card-green p-6 mb-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold">Ringkasan Tabungan</h2>
+                            <PiggyBankIcon className="h-8 w-8 text-green-200" />
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm opacity-80">Total Dana Terkumpul</p>
+                            <p className="text-3xl font-bold">{formatCurrency(totalSaved)}</p>
+                        </div>
+                        <div className="flex justify-between mt-4 text-sm">
+                            <div>
+                                <p className="opacity-80">Total Target</p>
+                                <p className="font-semibold">{formatCurrency(totalTarget)}</p>
+                            </div>
+                            <div>
+                                <p className="opacity-80">Target Aktif</p>
+                                <p className="font-semibold">{goals.length}</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Tambah Target Tabungan Baru</h2>
                         <form onSubmit={addGoal} className="space-y-3">
@@ -1556,16 +1636,21 @@
                     {showProfileSetup && <ProfileSetup onProfileSubmit={handleProfileSubmit} user={user} />}
                     <header className="bg-white/70 backdrop-blur-sm shadow-md sticky top-0 z-20">
                         <div className="max-w-4xl mx-auto p-4">
-                            <div className="flex justify-between items-center mb-4">
-                                <div className="flex items-center gap-3">
-                                    {/* FIX: Gunakan optional chaining untuk user?.photoURL */}
-                                    <img src={user?.photoURL || 'https://placehold.co/40x40/E2E8F0/4A5568?text=?'} alt="User" className="w-10 h-10 rounded-full object-cover" />
+                            <div className="flex flex-col sm:flex-row justify-between items-center mb-4"> {/* Added flex-col and sm:flex-row */}
+                                <div className="flex items-center gap-3 mb-4 sm:mb-0"> {/* Added margin-bottom for mobile */}
+                                    {/* Menambahkan logo di sini */}
+                                    <img
+                                        src="uploaded:Gemini_Generated_Image_qi35cdqi35cdqi35.jpg-662755ab-9ede-4627-a24c-b7df549ee777"
+                                        alt="Logo Dompet Bersama"
+                                        className="h-10 w-auto"
+                                        onerror="this.onerror=null; this.src='https://placehold.co/40x40/E2E8F0/4A5568?text=Logo';"
+                                    />
                                     <h1 className="text-xl font-bold text-blue-600">Ruang Bersama</h1>
                                 </div>
                                 <MonthSelector selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
-                                <button onClick={handleLogout} className="text-sm text-red-500 hover:underline">Logout</button>
+                                <button onClick={handleLogout} className="text-sm text-red-500 hover:underline mt-4 sm:mt-0">Logout</button> {/* Added margin-top for mobile */}
                             </div>
-                            <div className="flex justify-center items-center">
+                            <div className="flex justify-center items-center mt-4"> {/* Added margin-top */}
                                 <button onClick={copyLedgerId} className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-mono py-1 px-3 rounded-full">
                                     <span>Kode: {ledgerId}</span>
                                     {copied ? <span className="text-green-500 ml-2">Tersalin!</span> : <CopyIcon />}
