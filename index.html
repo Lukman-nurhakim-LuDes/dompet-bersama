@@ -120,6 +120,9 @@
         const BellIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
         // Ikon baru untuk Kebiasaan: Check Square
         const CheckSquareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        // Ikon baru untuk Menu: Hamburger
+        const MenuIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>;
+        const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 
 
         // Helper function to recursively remove undefined values from an object
@@ -1575,6 +1578,58 @@
             );
         };
 
+        // --- Komponen PopupMenu (Baru) ---
+        const PopupMenu = ({ activeTab, setActiveTab, onClose }) => {
+            const handleTabClick = (tabName) => {
+                setActiveTab(tabName);
+                onClose(); // Close the popup after selecting a tab
+            };
+
+            return (
+                <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-end justify-center z-40 p-4">
+                    <div className="bg-white rounded-t-2xl shadow-lg w-full max-w-md p-6 animate-slideUp">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-gray-800">Menu Navigasi</h2>
+                            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <nav className="grid grid-cols-3 gap-4">
+                            <button onClick={() => handleTabClick('dashboard')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'dashboard' ? 'bg-indigo-100 text-indigo-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                                <HomeIcon className="h-6 w-6 mb-1" />
+                                <span className="text-xs font-medium">Beranda</span>
+                            </button>
+                            <button onClick={() => handleTabClick('finance')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'finance' ? 'bg-blue-100 text-blue-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                                <WalletIcon className="h-6 w-6 mb-1" />
+                                <span className="text-xs font-medium">Keuangan</span>
+                            </button>
+                            <button onClick={() => handleTabClick('savings')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'savings' ? 'bg-green-100 text-green-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                                <GiftIcon className="h-6 w-6 mb-1" />
+                                <span className="text-xs font-medium">Tabungan</span>
+                            </button>
+                            <button onClick={() => handleTabClick('habits')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'habits' ? 'bg-purple-100 text-purple-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                                <CheckSquareIcon className="h-6 w-6 mb-1" />
+                                <span className="text-xs font-medium">Kebiasaan</span>
+                            </button>
+                            <button onClick={() => handleTabClick('calendar')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'calendar' ? 'bg-blue-100 text-blue-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                                <CalendarIcon className="h-6 w-6 mb-1" />
+                                <span className="text-xs font-medium">Kalender</span>
+                            </button>
+                            <button onClick={() => handleTabClick('wishlist')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'wishlist' ? 'bg-red-100 text-red-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                                <MapPinIcon className="h-6 w-6 mb-1" />
+                                <span className="text-xs font-medium">Wishlist</span>
+                            </button>
+                            <button onClick={() => handleTabClick('diary')} className={`flex flex-col items-center justify-center p-2 rounded-lg transition duration-200 ${activeTab === 'diary' ? 'bg-yellow-100 text-yellow-600 shadow-sm' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                                <BookOpenIcon className="h-6 w-6 mb-1" />
+                                <span className="text-xs font-medium">Diary</span>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+            );
+        };
+
+
         // --- Komponen Utama Aplikasi ---
         function App() {
             const isConfigValid = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("GANTI_DENGAN");
@@ -1589,6 +1644,7 @@
             const [selectedDate, setSelectedDate] = React.useState(new Date());
             const [authError, setAuthError] = React.useState(null);
             const [isAuthReady, setIsAuthReady] = React.useState(false); // State baru untuk melacak kesiapan otentikasi
+            const [showMenuPopup, setShowMenuPopup] = React.useState(false); // State baru untuk menu popup
 
             // Log selectedDate di App setiap kali berubah
             React.useEffect(() => {
@@ -1882,39 +1938,27 @@
                         {activeTab === 'wishlist' && <TravelWishlist user={user} ledgerId={ledgerId} />}
                     </main>
 
-                    {/* Footer Navigation like Instagram */}
+                    {/* Footer Navigation (now a single menu button) */}
                     <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
-                        <nav className="flex justify-around items-center h-10 sm:h-16 max-w-xl mx-auto">
-                            <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'dashboard' ? 'text-indigo-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <HomeIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
-                                <span>Beranda</span>
+                        <div className="flex justify-center items-center h-10 sm:h-16 max-w-xl mx-auto">
+                            <button
+                                onClick={() => setShowMenuPopup(true)}
+                                className="flex flex-col items-center justify-center p-2 text-xs font-medium text-gray-700 hover:text-blue-600 transition duration-200"
+                            >
+                                <MenuIcon className="h-6 w-6 mb-1" />
+                                <span>Menu</span>
                             </button>
-                            <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'finance' ? 'text-blue-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <WalletIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
-                                <span>Keuangan</span>
-                            </button>
-                            <button onClick={() => setActiveTab('savings')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'savings' ? 'text-green-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <GiftIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
-                                <span>Tabungan</span>
-                            </button>
-                            <button onClick={() => setActiveTab('habits')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'habits' ? 'text-purple-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <CheckSquareIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" /> {/* Ikon baru untuk Kebiasaan */}
-                                <span>Kebiasaan</span>
-                            </button>
-                            <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'calendar' ? 'text-blue-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <CalendarIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" /> {/* Ikon kalender untuk Kalender */}
-                                <span>Kalender</span>
-                            </button>
-                            <button onClick={() => setActiveTab('wishlist')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'wishlist' ? 'text-red-500 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <MapPinIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
-                                <span>Wishlist</span>
-                            </button>
-                            <button onClick={() => setActiveTab('diary')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'diary' ? 'text-yellow-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <BookOpenIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
-                                <span>Diary</span>
-                            </button>
-                        </nav>
+                        </div>
                     </footer>
+
+                    {/* Popup Menu */}
+                    {showMenuPopup && (
+                        <PopupMenu
+                            activeTab={activeTab}
+                            setActiveTab={setActiveTab}
+                            onClose={() => setShowMenuPopup(false)}
+                        />
+                    )}
                 </div>
             );
         }
