@@ -262,7 +262,7 @@
         };
 
         // --- Komponen Dashboard ---
-        const Dashboard = ({ user, ledgerId, setActiveTab, ledgerDoc, selectedDate }) => {
+        const Dashboard = ({ user, ledgerId, setActiveTab, ledgerDoc, selectedDate, setFirestoreError }) => {
             const { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } = window.Recharts || {};
             const [transactions, setTransactions] = React.useState([]);
             const [goals, setGoals] = React.useState([]);
@@ -306,6 +306,9 @@
                     setIsLoading(false);
                 }, (error) => {
                     console.error("Error fetching transactions:", error);
+                    if (error.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat transaksi. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
                     setIsLoading(false);
                 });
 
@@ -313,6 +316,9 @@
                     setGoals(snapshot.docs.map(doc => doc.data()));
                 }, (error) => {
                     console.error("Error fetching goals:", error);
+                    if (error.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat target tabungan. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
                     setIsLoading(false);
                 });
 
@@ -320,7 +326,7 @@
                     unsubTransactions();
                     unsubGoals();
                 };
-            }, [user, ledgerId, selectedDate]); // Depend on selectedDate to re-fetch for new year if month changes year
+            }, [user, ledgerId, selectedDate, setFirestoreError]); // Depend on selectedDate to re-fetch for new year if month changes year
 
             // Calculate current month's financials
             const { totalIncome, totalExpense, balance } = React.useMemo(() => {
@@ -603,7 +609,7 @@
         };
 
         // --- Komponen FinanceTracker ---
-        const FinanceTracker = ({ user, ledgerId, selectedDate }) => {
+        const FinanceTracker = ({ user, ledgerId, selectedDate, setFirestoreError }) => {
             const [transactions, setTransactions] = React.useState([]);
             const [description, setDescription] = React.useState('');
             const [amount, setAmount] = React.useState('');
@@ -632,11 +638,14 @@
                     setIsLoading(false);
                 }, (err) => {
                     console.error("Firestore Error:", err);
+                    if (err.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat transaksi. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
                     setError("Gagal memuat data transaksi.");
                     setIsLoading(false);
                 });
                 return () => unsubscribe();
-            }, [user, ledgerId, monthYear]);
+            }, [user, ledgerId, monthYear, setFirestoreError]);
 
             const addTransaction = async (e) => {
                 e.preventDefault();
@@ -753,7 +762,7 @@
         };
 
         // --- Komponen Pelacak Kebiasaan ---
-        const HabitTracker = ({ user, ledgerId, selectedDate, requestNotificationPermission }) => {
+        const HabitTracker = ({ user, ledgerId, selectedDate, requestNotificationPermission, setFirestoreError }) => {
             const [habits, setHabits] = React.useState([]);
             const [newHabitName, setNewHabitName] = React.useState('');
             const [newHabitTime, setNewHabitTime] = React.useState(''); // New state for reminder time
@@ -817,9 +826,16 @@
                         }
                     });
 
-                }, (err) => { console.error("Firestore Error:", err); setError("Gagal memuat data kebiasaan."); setIsLoading(false); });
+                }, (err) => {
+                    console.error("Firestore Error:", err);
+                    if (err.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat kebiasaan. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
+                    setError("Gagal memuat data kebiasaan.");
+                    setIsLoading(false);
+                });
                 return () => unsubscribe();
-            }, [user, ledgerId, selectedDate]);
+            }, [user, ledgerId, selectedDate, setFirestoreError]);
 
             const addHabit = async (e) => {
                 e.preventDefault();
@@ -912,7 +928,7 @@
         };
 
         // --- Komponen Pelacak Tabungan ---
-        const SavingsTracker = ({ user, ledgerId }) => {
+        const SavingsTracker = ({ user, ledgerId, setFirestoreError }) => {
             const [goals, setGoals] = React.useState([]);
             const [newGoalName, setNewGoalName] = React.useState('');
             const [newTargetAmount, setNewTargetAmount] = React.useState('');
@@ -934,11 +950,14 @@
                     setIsLoading(false);
                 }, (err) => {
                     console.error("Firestore Error:", err);
+                    if (err.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat target tabungan. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
                     setError("Gagal memuat data tabungan.");
                     setIsLoading(false);
                 });
                 return () => unsubscribe();
-            }, [user, ledgerId]);
+            }, [user, ledgerId, setFirestoreError]);
 
             const addGoal = async (e) => {
                 e.preventDefault();
@@ -1069,7 +1088,7 @@
         };
 
         // --- Komponen TravelWishlist (Baru) ---
-        const TravelWishlist = ({ user, ledgerId }) => {
+        const TravelWishlist = ({ user, ledgerId, setFirestoreError }) => {
             const [wishlistItems, setWishlistItems] = React.useState([]);
             const [newDestination, setNewDestination] = React.useState('');
             const [newDescription, setNewDescription] = React.useState('');
@@ -1087,9 +1106,16 @@
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     setWishlistItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                     setIsLoading(false);
-                }, (err) => { console.error("Firestore Error:", err); setError("Gagal memuat wishlist."); setIsLoading(false); });
+                }, (err) => {
+                    console.error("Firestore Error:", err);
+                    if (err.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat wishlist perjalanan. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
+                    setError("Gagal memuat wishlist.");
+                    setIsLoading(false);
+                });
                 return () => unsubscribe();
-            }, [user, ledgerId]);
+            }, [user, ledgerId, setFirestoreError]);
 
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
@@ -1199,7 +1225,7 @@
         };
         
         // --- Komponen Diary (Diperbarui dengan Firestore) ---
-        const Diary = ({ user, ledgerId, selectedDate }) => {
+        const Diary = ({ user, ledgerId, selectedDate, setFirestoreError }) => {
             const [diaryEntries, setDiaryEntries] = React.useState([]);
             const [newEntryText, setNewEntryText] = React.useState('');
             const [isLoading, setIsLoading] = React.useState(true);
@@ -1227,11 +1253,14 @@
                     setIsLoading(false);
                 }, (err) => {
                     console.error("Firestore Error:", err);
+                    if (err.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat entri buku harian. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
                     setError("Gagal memuat entri buku harian.");
                     setIsLoading(false);
                 });
                 return () => unsubscribe();
-            }, [user, ledgerId, monthYear]);
+            }, [user, ledgerId, monthYear, setFirestoreError]);
 
             const addDiaryEntry = async (e) => {
                 e.preventDefault();
@@ -1314,7 +1343,7 @@
         };
 
         // --- Komponen EventsCalendar (CoupleCalendar yang Diperbarui) ---
-        const EventsCalendar = ({ user, ledgerId, selectedDate, requestNotificationPermission }) => {
+        const EventsCalendar = ({ user, ledgerId, selectedDate, requestNotificationPermission, setFirestoreError }) => {
             const [events, setEvents] = React.useState([]);
             const [newEventTitle, setNewEventTitle] = React.useState('');
             const [newEventDate, setNewEventDate] = React.useState(selectedDate.toISOString().split('T')[0]); // Default to current date
@@ -1346,11 +1375,14 @@
                     setIsLoading(false);
                 }, (err) => {
                     console.error("Firestore Error:", err);
+                    if (err.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat acara kalender. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
                     setError("Gagal memuat acara.");
                     setIsLoading(false);
                 });
                 return () => unsubscribe();
-            }, [user, ledgerId, monthYear]);
+            }, [user, ledgerId, monthYear, setFirestoreError]);
 
             // Handler untuk menambahkan acara baru
             const addEvent = async (e) => {
@@ -1645,6 +1677,7 @@
             const [authError, setAuthError] = React.useState(null);
             const [isAuthReady, setIsAuthReady] = React.useState(false); // State baru untuk melacak kesiapan otentikasi
             const [showMenuPopup, setShowMenuPopup] = React.useState(false); // State baru untuk menu popup
+            const [firestoreError, setFirestoreError] = React.useState(null); // State baru untuk error Firestore
 
             // Log selectedDate di App setiap kali berubah
             React.useEffect(() => {
@@ -1705,6 +1738,7 @@
                     localStorage.removeItem('ledgerId');
                     setActiveTab('dashboard');
                     setShowProfileSetup(false);
+                    setFirestoreError(null); // Clear Firestore error on logout
                 } catch (error) {
                     console.error("Logout error:", error);
                 }
@@ -1741,8 +1775,12 @@
                     // Update user state in App with the new name and photoURL
                     setUser(prev => ({ ...prev, ...sanitizedParticipantData }));
                     setShowProfileSetup(false);
+                    setFirestoreError(null); // Clear Firestore error after successful profile update
                 } catch (error) {
                     console.error("Error setting profile:", error);
+                    if (error.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memperbarui profil. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
                 }
             };
 
@@ -1817,6 +1855,7 @@
                                 photoURL: participants[user.uid].photoURL || null
                             }));
                             setShowProfileSetup(false);
+                            setFirestoreError(null); // Clear Firestore error on successful ledger doc fetch
                         } else {
                             // If user is not yet in ledger participants, show profile setup
                             // Ensure name and photoURL properties in user state are null
@@ -1826,16 +1865,23 @@
                                 photoURL: null
                             }));
                             setShowProfileSetup(true);
+                            // Set a specific error for profile setup if ledger exists but user is not a participant
+                            setFirestoreError("Profil Anda belum terdaftar di ruang bersama ini. Silakan lengkapi profil Anda.");
                         }
                     } else {
                         // If ledger does not exist, maybe ID is wrong or newly created, ask user to create profile
                         setLedgerDoc(null);
                         setShowProfileSetup(true);
+                        setFirestoreError("Ruang bersama tidak ditemukan atau Anda belum membuat/bergabung. Silakan buat ruang baru atau bergabung.");
                     }
                 }, (error) => {
                     console.error("Error fetching ledger document:", error);
                     setLedgerDoc(null);
-                    // Handle error, maybe show a message to the user
+                    if (error.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat ruang bersama. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    } else {
+                        setFirestoreError("Terjadi kesalahan saat memuat ruang bersama. Silakan coba lagi.");
+                    }
                 });
                 return unsub;
             }, [user?.uid, ledgerId, db]);
@@ -1902,6 +1948,7 @@
             return (
                 <div className="min-h-screen font-sans bg-gradient-to-br from-blue-50 to-indigo-100 pb-16"> {/* Add padding-bottom for fixed footer */}
                     {showProfileSetup && <ProfileSetup onProfileSubmit={handleProfileSubmit} user={user} />}
+                    {firestoreError && <MessageBox message={firestoreError} onClose={() => setFirestoreError(null)} />}
                     <header className="bg-white/70 backdrop-blur-sm shadow-md sticky top-0 z-20">
                         <div className="max-w-4xl mx-auto p-1 sm:p-4"> {/* Reduced overall padding on mobile */}
                             {/* Reduced vertical padding on mobile and adjusted text size */}
@@ -1929,13 +1976,13 @@
                         </div>
                     </header>
                     <main className="max-w-4xl mx-auto p-4">
-                        {activeTab === 'dashboard' && <Dashboard user={user} ledgerId={ledgerId} setActiveTab={setActiveTab} ledgerDoc={ledgerDoc} selectedDate={selectedDate} />}
-                        {activeTab === 'finance' && <FinanceTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
-                        {activeTab === 'savings' && <SavingsTracker user={user} ledgerId={ledgerId} />}
-                        {activeTab === 'habits' && <HabitTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} />}
-                        {activeTab === 'calendar' && <EventsCalendar user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} />}
-                        {activeTab === 'diary' && <Diary user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
-                        {activeTab === 'wishlist' && <TravelWishlist user={user} ledgerId={ledgerId} />}
+                        {activeTab === 'dashboard' && <Dashboard user={user} ledgerId={ledgerId} setActiveTab={setActiveTab} ledgerDoc={ledgerDoc} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
+                        {activeTab === 'finance' && <FinanceTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
+                        {activeTab === 'savings' && <SavingsTracker user={user} ledgerId={ledgerId} setFirestoreError={setFirestoreError} />}
+                        {activeTab === 'habits' && <HabitTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} setFirestoreError={setFirestoreError} />}
+                        {activeTab === 'calendar' && <EventsCalendar user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} setFirestoreError={setFirestoreError} />}
+                        {activeTab === 'diary' && <Diary user={user} ledgerId={ledgerId} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
+                        {activeTab === 'wishlist' && <TravelWishlist user={user} ledgerId={ledgerId} setFirestoreError={setFirestoreError} />}
                     </main>
 
                     {/* Footer Navigation (now a single menu button) */}
