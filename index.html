@@ -270,6 +270,7 @@
             const { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } = window.Recharts || {};
             const [transactions, setTransactions] = React.useState([]);
             const [goals, setGoals] = React.useState([]);
+            const [budgets, setBudgets] = React.useState([]); // New state for budgets
             const [isLoading, setIsLoading] = React.useState(true);
             const [messageBox, setMessageBox] = React.useState(null); // State for custom message box
 
@@ -294,6 +295,7 @@
                 const currentYear = selectedDate.getFullYear();
                 const transQuery = query(collection(db, `ledgers/${ledgerId}/transactions`));
                 const goalsQuery = query(collection(db, `ledgers/${ledgerId}/savings`));
+                const budgetsQuery = query(collection(db, `ledgers/${ledgerId}/budgets`)); // Query for budgets
 
                 const unsubTransactions = onSnapshot(transQuery, (snapshot) => {
                     const allTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -326,9 +328,19 @@
                     setIsLoading(false);
                 });
 
+                const unsubBudgets = onSnapshot(budgetsQuery, (snapshot) => {
+                    setBudgets(snapshot.docs.map(doc => doc.data()));
+                }, (error) => {
+                    console.error("Error fetching budgets:", error);
+                    if (error.code === 'permission-denied') {
+                        setFirestoreError("Kesalahan Izin: Gagal memuat anggaran. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    }
+                });
+
                 return () => {
                     unsubTransactions();
                     unsubGoals();
+                    unsubBudgets();
                 };
             }, [user, ledgerId, selectedDate, setFirestoreError]); // Depend on selectedDate to re-fetch for new year if month changes year
 
@@ -409,6 +421,39 @@
                     return { ...month, saldo: cumulativeBalance };
                 });
             }, [transactions, selectedDate, user]);
+
+            // Data for Daily Financial Trend (Line Chart) for the current month
+            const dailyFinancialTrendData = React.useMemo(() => {
+                const daysInCurrentMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
+                const dailyData = {};
+
+                for (let i = 1; i <= daysInCurrentMonth; i++) {
+                    const dateKey = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                    dailyData[dateKey] = {
+                        name: String(i), // Day number
+                        pemasukan: 0,
+                        pengeluaran: 0,
+                    };
+                }
+
+                transactions.forEach(t => {
+                    if (t.createdAt && typeof t.createdAt.toDate === 'function') {
+                        const date = t.createdAt.toDate();
+                        const dayOfMonth = date.getDate();
+                        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(dayOfMonth).padStart(2, '0')}`;
+
+                        if (dailyData[dateKey]) {
+                            if (t.type === 'pemasukan') {
+                                dailyData[dateKey].pemasukan += Number(t.amount);
+                            } else if (t.type === 'pengeluaran') {
+                                dailyData[dateKey].pengeluaran += Number(t.amount);
+                            }
+                        }
+                    }
+                });
+
+                return Object.values(dailyData);
+            }, [transactions, selectedDate]);
 
 
             const partner = React.useMemo(() => {
@@ -649,6 +694,7 @@
         // --- Komponen FinanceTracker ---
         const FinanceTracker = ({ user, ledgerId, selectedDate, setFirestoreError }) => {
             const [transactions, setTransactions] = React.useState([]);
+            const [budgets, setBudgets] = React.useState([]); // State for budgets to check against
             const [description, setDescription] = React.useState('');
             const [amount, setAmount] = React.useState('');
             const [type, setType] = React.useState('pengeluaran');
@@ -659,6 +705,7 @@
 
             const defaultCategories = ['Makanan', 'Transportasi', 'Hiburan', 'Tagihan', 'Belanja', 'Lain-lain']; // Example categories
 
+            // Fetch transactions
             React.useEffect(() => {
                 if (!user || !ledgerId || !db) {
                     setIsLoading(false);
@@ -670,9 +717,8 @@
                 const q = query(collection(db, collectionPath), where('monthYear', '==', monthYear));
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     const newTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => {
-                        // Safely access toDate()
-                        const dateA = a.createdAt && typeof a.createdAt.toDate === 'function' ? a.createdAt.toDate() : new Date(0); // Default to epoch if invalid
-                        const dateB = b.createdAt && typeof b.createdAt.toDate === 'function' ? b.createdAt.toDate() : new Date(0); // Default to epoch if invalid
+                        const dateA = a.createdAt && typeof a.createdAt.toDate === 'function' ? a.createdAt.toDate() : new Date(0);
+                        const dateB = b.createdAt && typeof b.createdAt.toDate === 'function' ? b.createdAt.toDate() : new Date(0);
                         return dateB - dateA;
                     });
                     setTransactions(newTransactions);
@@ -688,9 +734,22 @@
                 return () => unsubscribe();
             }, [user, ledgerId, monthYear, setFirestoreError]);
 
+            // Fetch budgets for the current month
+            React.useEffect(() => {
+                if (!user || !ledgerId || !db) { setBudgets([]); return; }
+                const budgetCollectionPath = `ledgers/${ledgerId}/budgets`;
+                const q = query(collection(db, budgetCollectionPath), where('monthYear', '==', monthYear));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    setBudgets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                }, (err) => {
+                    console.error("Firestore Error fetching budgets for FinanceTracker:", err);
+                });
+                return () => unsubscribe();
+            }, [user, ledgerId, monthYear]);
+
+
             const addTransaction = async (e) => {
                 e.preventDefault();
-                // Ensure user and user.name exist before adding transaction
                 if (!description || !amount || !user || !user.uid || !ledgerId || !db) {
                     setError("Deskripsi, jumlah, atau informasi pengguna tidak lengkap.");
                     return;
@@ -700,15 +759,26 @@
                         description,
                         amount: Number(amount),
                         type,
-                        category: category || 'Lain-lain', // Save category
+                        category: category || 'Lain-lain',
                         userId: user.uid,
-                        userName: user.name || 'Anonim', // Fallback if user.name is null
+                        userName: user.name || 'Anonim',
                         createdAt: serverTimestamp(),
                         monthYear: monthYear
                     });
+
+                    // Update budget if it's an expense and a category is selected
+                    if (type === 'pengeluaran' && category) {
+                        const existingBudget = budgets.find(b => b.name === category && b.monthYear === monthYear);
+                        if (existingBudget) {
+                            await updateDoc(doc(db, `ledgers/${ledgerId}/budgets/${existingBudget.id}`), {
+                                spentAmount: increment(Number(amount)) // Add to spentAmount
+                            });
+                        }
+                    }
+
                     setDescription('');
                     setAmount('');
-                    setCategory(''); // Reset category
+                    setCategory('');
                     setError('');
                 } catch (err) {
                     console.error("Error adding transaction:", err);
@@ -716,10 +786,20 @@
                 }
             };
 
-            const deleteTransaction = async (id) => {
+            const deleteTransaction = async (id, transactionType, transactionAmount, transactionCategory) => {
                 if (!db) return;
                 try {
                     await deleteDoc(doc(db, `ledgers/${ledgerId}/transactions/${id}`));
+
+                    // Revert budget if it was an expense
+                    if (transactionType === 'pengeluaran' && transactionCategory) {
+                        const existingBudget = budgets.find(b => b.name === transactionCategory && b.monthYear === monthYear);
+                        if (existingBudget) {
+                            await updateDoc(doc(db, `ledgers/${ledgerId}/budgets/${existingBudget.id}`), {
+                                spentAmount: increment(-Number(transactionAmount)) // Subtract from spentAmount
+                            });
+                        }
+                    }
                 } catch (err) {
                     console.error("Error deleting transaction:", err);
                     setError("Gagal menghapus transaksi.");
@@ -784,6 +864,62 @@
                         </form>
                         {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                     </div>
+
+                    {/* Budget Summary for current month within FinanceTracker */}
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Ringkasan Anggaran Bulan Ini</h2>
+                        {budgets.length === 0 ? (
+                            <p className="text-center text-gray-500">Belum ada anggaran yang diatur untuk bulan ini.</p>
+                        ) : (
+                            <div className="space-y-4">
+                                {budgets.map(budget => {
+                                    const spent = transactions
+                                        .filter(t => t.category === budget.name && t.monthYear === monthYear && t.type === 'pengeluaran')
+                                        .reduce((sum, t) => sum + Number(t.amount), 0);
+                                    const remaining = budget.budgetAmount - spent;
+                                    const progress = (spent / budget.budgetAmount) * 100;
+                                    const isOverBudget = remaining < 0;
+
+                                    return (
+                                        <div key={budget.id} className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <p className="font-semibold text-gray-800">{budget.name}</p>
+                                                    <p className="text-sm text-gray-600">Anggaran: {formatCurrency(budget.budgetAmount)}</p>
+                                                    <p className="text-sm text-gray-600">Terpakai: {formatCurrency(spent)}</p>
+                                                    <p className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>Sisa: {formatCurrency(remaining)}</p>
+                                                </div>
+                                                <button onClick={() => deleteDoc(doc(db, `ledgers/${ledgerId}/budgets/${budget.id}`))} className="text-gray-400 hover:text-red-500 p-1 rounded-full transition duration-200"><TrashIcon /></button>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
+                                                <div className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isOverBudget ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${progress > 100 ? 100 : progress}%` }}></div>
+                                            </div>
+                                            {isOverBudget && <p className="text-xs text-red-500 mt-1">Anda melebihi anggaran untuk kategori ini!</p>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        <button onClick={() => {
+                                const categoryName = prompt("Masukkan nama kategori anggaran baru:");
+                                const budgetAmount = prompt("Masukkan jumlah anggaran untuk kategori ini:");
+                                if (categoryName && budgetAmount && !isNaN(Number(budgetAmount))) {
+                                    addDoc(collection(db, `ledgers/${ledgerId}/budgets`), {
+                                        name: categoryName,
+                                        budgetAmount: Number(budgetAmount),
+                                        monthYear: monthYear,
+                                        userId: user.uid,
+                                        userName: user.name || 'Anonim',
+                                        createdAt: serverTimestamp()
+                                    }).catch(err => console.error("Error adding budget from prompt:", err));
+                                } else if (categoryName || budgetAmount) {
+                                    alert("Input tidak valid. Nama kategori dan jumlah anggaran harus diisi dengan benar.");
+                                }
+                            }} className="w-full mt-4 bg-blue-100 text-blue-800 font-bold py-2 px-4 rounded-lg hover:bg-blue-200 transition duration-200">
+                            Atur Anggaran Baru
+                        </button>
+                    </div>
+
                     <div>
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Riwayat Transaksi - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
                         {isLoading ? <p className="text-center text-gray-500">Memuat data...</p> : transactions.length === 0 ? <div className="text-center bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-8 border border-gray-100"><p className="text-gray-500">Belum ada transaksi bulan ini. Tambahkan transaksi pertama Anda di atas!</p></div> : (
@@ -796,7 +932,7 @@
                                         </div>
                                         <div className="flex items-center space-x-4">
                                             <p className={`font-bold ${t.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(t.amount)}</p>
-                                            <button onClick={() => deleteTransaction(t.id)} className="text-gray-400 hover:text-red-500 p-2 rounded-full transition duration-200"><TrashIcon /></button>
+                                            <button onClick={() => deleteTransaction(t.id, t.type, t.amount, t.category)} className="text-gray-400 hover:text-red-500 p-2 rounded-full transition duration-200"><TrashIcon /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -919,7 +1055,25 @@
                 const currentCompletions = habit.completions || [];
                 const isDone = currentCompletions.includes(dateString);
                 const newCompletions = isDone ? arrayRemove(dateString) : arrayUnion(dateString);
-                try { await updateDoc(doc(db, `ledgers/${ledgerId}/habits/${habit.id}`), { completions: newCompletions }); } catch (err) { console.error("Error toggling habit:", err); }
+
+                // Store who completed it
+                const currentCompletedBy = habit.completedBy || {};
+                const newCompletedBy = { ...currentCompletedBy };
+
+                if (isDone) {
+                    delete newCompletedBy[dateString]; // Remove entry for this day
+                } else {
+                    newCompletedBy[dateString] = user.name || 'Anonim'; // Add user's name for this day
+                }
+
+                try {
+                    await updateDoc(doc(db, `ledgers/${ledgerId}/habits/${habit.id}`), {
+                        completions: newCompletions,
+                        completedBy: newCompletedBy
+                    });
+                } catch (err) {
+                    console.error("Error toggling habit:", err);
+                }
             };
             
             const deleteHabit = async (id) => {
@@ -927,10 +1081,42 @@
                 try { await deleteDoc(doc(db, `ledgers/${ledgerId}/habits/${id}`)); } catch (err) { console.error("Error deleting habit:", err); }
             };
 
+            // Group habits by name to combine duplicates
+            const groupedHabits = React.useMemo(() => {
+                const groups = {};
+                habits.forEach(h => {
+                    if (!groups[h.name]) {
+                        groups[h.name] = {
+                            name: h.name,
+                            ids: [],
+                            completions: [],
+                            completedBy: {},
+                            reminderTime: h.reminderTime,
+                            users: [] // To store unique users for this habit
+                        };
+                    }
+                    groups[h.name].ids.push(h.id);
+                    groups[h.name].users.push(h.userName || 'Anonim');
+                    // Merge completions and completedBy from all habits with the same name
+                    (h.completions || []).forEach(comp => {
+                        if (!groups[h.name].completions.includes(comp)) {
+                            groups[h.name].completions.push(comp);
+                        }
+                    });
+                    Object.assign(groups[h.name].completedBy, h.completedBy);
+                });
+                // Ensure unique users
+                for (const name in groups) {
+                    groups[name].users = [...new Set(groups[name].users)];
+                }
+                return Object.values(groups);
+            }, [habits]);
+
+
             // Calculate daily progress percentage
             const dailyProgress = React.useMemo(() => {
                 const progress = {};
-                const totalHabits = habits.length;
+                const totalHabits = groupedHabits.length; // Use groupedHabits for total count
                 if (totalHabits === 0) {
                     for (let i = 1; i <= daysInMonth; i++) {
                         progress[i] = 0;
@@ -941,7 +1127,7 @@
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dateString = `${monthYear}-${String(day).padStart(2, '0')}`;
                     let completedCount = 0;
-                    habits.forEach(h => {
+                    groupedHabits.forEach(h => { // Iterate through grouped habits
                         if ((h.completions || []).includes(dateString)) {
                             completedCount++;
                         }
@@ -949,39 +1135,36 @@
                     progress[day] = (completedCount / totalHabits) * 100;
                 }
                 return progress;
-            }, [habits, daysInMonth, monthYear]);
+            }, [groupedHabits, daysInMonth, monthYear]);
 
             // Calculate monthly completion rate for each habit
             const monthlyCompletionRate = React.useMemo(() => {
                 const rates = {};
-                habits.forEach(h => {
+                groupedHabits.forEach(h => { // Use groupedHabits
                     const completedInMonth = (h.completions || []).filter(dateStr => dateStr.startsWith(monthYear)).length;
-                    rates[h.id] = (completedInMonth / daysInMonth) * 100;
+                    rates[h.name] = (completedInMonth / daysInMonth) * 100;
                 });
                 return rates;
-            }, [habits, daysInMonth, monthYear]);
+            }, [groupedHabits, daysInMonth, monthYear]);
 
-            // Calculate streak for each habit
-            const calculateStreak = (completions) => {
+            // Calculate streak for each grouped habit
+            const calculateGroupedStreak = (completions) => {
                 if (!completions || completions.length === 0) return 0;
 
                 let streak = 0;
                 let currentDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
                 let todayString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
 
-                // Check if today's habit is completed
                 if (completions.includes(todayString)) {
                     streak = 1;
                 } else {
-                    // If today's habit is not completed, check yesterday
                     currentDate.setDate(currentDate.getDate() - 1);
                     todayString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
                     if (!completions.includes(todayString)) {
-                        return 0; // No streak if yesterday also not completed
+                        return 0;
                     }
                 }
 
-                // Continue checking backwards
                 while (true) {
                     currentDate.setDate(currentDate.getDate() - 1);
                     const prevDayString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
@@ -1008,7 +1191,7 @@
                     </div>
                     <div>
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Tabel Kebiasaan - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
-                        {isLoading ? <p>Memuat...</p> : habits.length === 0 ? <div className="text-center bg-white/90 backdrop-blur-sm rounded-xl p-8 border border-gray-100"><p className="text-gray-500">Belum ada kebiasaan. Tambahkan kebiasaan pertama Anda di atas!</p></div> : (
+                        {isLoading ? <p>Memuat...</p> : groupedHabits.length === 0 ? <div className="text-center bg-white/90 backdrop-blur-sm rounded-xl p-8 border border-gray-100"><p className="text-gray-500">Belum ada kebiasaan. Tambahkan kebiasaan pertama Anda di atas!</p></div> : (
                             <div className="overflow-x-auto bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-4 border border-gray-100">
                                 <table className="w-full border-collapse text-sm text-center">
                                     <thead>
@@ -1025,23 +1208,37 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {habits.map(h => (
-                                            <tr key={h.id} className="border-b last:border-b-0">
+                                        {groupedHabits.map(h => (
+                                            <tr key={h.name} className="border-b last:border-b-0"> {/* Use h.name as key for grouped habits */}
                                                 <td className="p-2 text-left font-semibold sticky left-0 bg-white/90 backdrop-blur-sm flex items-center justify-between z-10">
                                                     <div className="flex flex-col items-start">
                                                         <span className="truncate pr-2 text-gray-800">{h.name} {h.reminderTime ? `(${h.reminderTime})` : ''}</span>
-                                                        <span className="text-xs text-gray-500">Oleh: {h.userName || 'Anonim'}</span>
-                                                        <span className="text-xs text-blue-500">Streak: {calculateStreak(h.completions)} hari</span>
-                                                        <span className="text-xs text-green-500">Bulan Ini: {monthlyCompletionRate[h.id].toFixed(0)}%</span>
+                                                        <span className="text-xs text-gray-500">Oleh: {h.users.join(', ')}</span> {/* Display all users */}
+                                                        <span className="text-xs text-blue-500">Streak: {calculateGroupedStreak(h.completions)} hari</span>
+                                                        <span className="text-xs text-green-500">Bulan Ini: {monthlyCompletionRate[h.name].toFixed(0)}%</span>
                                                     </div>
-                                                    <button onClick={() => deleteHabit(h.id)} className="text-gray-400 hover:text-red-500 transition duration-200"><TrashIcon /></button>
+                                                    {/* Delete button for the first habit in the group, or consider a group delete */}
+                                                    <button onClick={() => deleteHabit(h.ids[0])} className="text-gray-400 hover:text-red-500 transition duration-200"><TrashIcon /></button>
                                                 </td>
                                                 {daysArray.map(day => {
                                                     const dateString = `${monthYear}-${String(day).padStart(2, '0')}`;
+                                                    const completedByThisDay = h.completedBy[dateString];
                                                     const isDone = (h.completions || []).includes(dateString);
                                                     return (
                                                         <td key={day} className="p-2 border-l border-gray-100">
-                                                            <input type="checkbox" checked={isDone} onChange={() => toggleHabitCompletion(h, day)} className="w-5 h-5 rounded text-purple-600 focus:ring-purple-500 cursor-pointer transition duration-200" />
+                                                            <div className="flex flex-col items-center justify-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isDone}
+                                                                    onChange={() => toggleHabitCompletion(h, day)}
+                                                                    className="w-5 h-5 rounded text-purple-600 focus:ring-purple-500 cursor-pointer transition duration-200"
+                                                                />
+                                                                {completedByThisDay && (
+                                                                    <span className="text-xs text-gray-500 mt-0.5">
+                                                                        {completedByThisDay.substring(0, 1).toUpperCase()} {/* Display first letter of name */}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     );
                                                 })}
@@ -1753,149 +1950,14 @@
 
 
         // --- Komponen BudgetTracker (Baru) ---
+        // Fungsionalitas BudgetTracker sekarang diintegrasikan ke FinanceTracker
+        // Ini adalah komponen placeholder yang tidak lagi digunakan secara langsung sebagai tab terpisah
         const BudgetTracker = ({ user, ledgerId, selectedDate, setFirestoreError }) => {
-            const [budgetCategories, setBudgetCategories] = React.useState([]);
-            const [newCategoryName, setNewCategoryName] = React.useState('');
-            const [newBudgetAmount, setNewBudgetAmount] = React.useState('');
-            const [transactions, setTransactions] = React.useState([]); // To calculate spending against budget
-            const [isLoading, setIsLoading] = React.useState(true);
-            const [error, setError] = React.useState('');
-            const monthYear = getMonthYear(selectedDate);
-
-            // Fetch budget categories
-            React.useEffect(() => {
-                if (!user || !ledgerId || !db) { setIsLoading(false); setBudgetCategories([]); return; }
-                setIsLoading(true);
-                const collectionPath = `ledgers/${ledgerId}/budgets`;
-                const q = query(collection(db, collectionPath), where('monthYear', '==', monthYear));
-                const unsubscribe = onSnapshot(q, (snapshot) => {
-                    setBudgetCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    setIsLoading(false);
-                }, (err) => {
-                    console.error("Firestore Error:", err);
-                    if (err.code === 'permission-denied') {
-                        setFirestoreError("Kesalahan Izin: Gagal memuat anggaran. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
-                    }
-                    setError("Gagal memuat anggaran.");
-                    setIsLoading(false);
-                });
-                return () => unsubscribe();
-            }, [user, ledgerId, monthYear, setFirestoreError]);
-
-            // Fetch transactions for current month to calculate spending
-            React.useEffect(() => {
-                if (!user || !ledgerId || !db) { setTransactions([]); return; }
-                const transCollectionPath = `ledgers/${ledgerId}/transactions`;
-                const q = query(collection(db, transCollectionPath), where('monthYear', '==', monthYear), where('type', '==', 'pengeluaran'));
-                const unsubscribe = onSnapshot(q, (snapshot) => {
-                    setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                }, (err) => {
-                    console.error("Firestore Error fetching transactions for budget:", err);
-                });
-                return () => unsubscribe();
-            }, [user, ledgerId, monthYear]);
-
-            const addBudgetCategory = async (e) => {
-                e.preventDefault();
-                if (!newCategoryName.trim() || !newBudgetAmount || !user || !ledgerId || !db) {
-                    setError("Nama kategori atau jumlah anggaran tidak boleh kosong.");
-                    return;
-                }
-                try {
-                    await addDoc(collection(db, `ledgers/${ledgerId}/budgets`), {
-                        name: newCategoryName,
-                        budgetAmount: Number(newBudgetAmount),
-                        monthYear: monthYear,
-                        userId: user.uid,
-                        userName: user.name || 'Anonim',
-                        createdAt: serverTimestamp()
-                    });
-                    setNewCategoryName('');
-                    setNewBudgetAmount('');
-                    setError('');
-                } catch (err) {
-                    console.error("Error adding budget category:", err);
-                    setError("Gagal menambah kategori anggaran.");
-                }
-            };
-
-            const deleteBudgetCategory = async (id) => {
-                if (!db) return;
-                try {
-                    await deleteDoc(doc(db, `ledgers/${ledgerId}/budgets/${id}`));
-                } catch (err) {
-                    console.error("Error deleting budget category:", err);
-                    setError("Gagal menghapus kategori anggaran.");
-                }
-            };
-
-            const getSpentAmount = (categoryName) => {
-                return transactions
-                    .filter(t => t.category === categoryName)
-                    .reduce((sum, t) => sum + Number(t.amount), 0);
-            };
-
             return (
-                <>
-                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
-                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Atur Anggaran Bulanan - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
-                        <form onSubmit={addBudgetCategory} className="space-y-4">
-                            <input
-                                type="text"
-                                value={newCategoryName}
-                                onChange={(e) => setNewCategoryName(e.target.value)}
-                                placeholder="Nama Kategori (misal: Makanan)"
-                                className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                                required
-                            />
-                            <input
-                                type="number"
-                                value={newBudgetAmount}
-                                onChange={(e) => setNewBudgetAmount(e.target.value)}
-                                placeholder="Jumlah Anggaran (misal: 1000000)"
-                                className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                                required
-                            />
-                            <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 flex items-center justify-center shadow-custom-blue">
-                                <PlusIcon /><span>Tambah Anggaran</span>
-                            </button>
-                        </form>
-                        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-                    </div>
-
-                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
-                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Ringkasan Anggaran</h2>
-                        {isLoading ? <p className="text-center text-gray-500">Memuat anggaran...</p> : budgetCategories.length === 0 ? <div className="text-center text-gray-500 p-8">Belum ada kategori anggaran. Tambahkan anggaran pertama Anda di atas!</div> : (
-                            <div className="space-y-4">
-                                {budgetCategories.map(budget => {
-                                    const spent = getSpentAmount(budget.name);
-                                    const remaining = budget.budgetAmount - spent;
-                                    const progress = (spent / budget.budgetAmount) * 100;
-                                    const isOverBudget = remaining < 0;
-
-                                    return (
-                                        <div key={budget.id} className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div>
-                                                    <p className="font-semibold text-gray-800">{budget.name}</p>
-                                                    <p className="text-sm text-gray-600">Anggaran: {formatCurrency(budget.budgetAmount)}</p>
-                                                    <p className="text-sm text-gray-600">Terpakai: {formatCurrency(spent)}</p>
-                                                    <p className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>Sisa: {formatCurrency(remaining)}</p>
-                                                    <p className="text-xs text-gray-500">Dibuat oleh: {budget.userName || 'Anonim'}</p>
-                                                </div>
-                                                <button onClick={() => deleteBudgetCategory(budget.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-full transition duration-200"><TrashIcon /></button>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
-                                                <div className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isOverBudget ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${progress > 100 ? 100 : progress}%` }}></div>
-                                            </div>
-                                            {isOverBudget && <p className="text-xs text-red-500 mt-1">Anda melebihi anggaran untuk kategori ini!</p>}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </>
+                <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Anggaran</h2>
+                    <p className="text-gray-600">Fungsionalitas anggaran kini terintegrasi langsung di tab Keuangan. Anda dapat mengatur anggaran per kategori saat menambahkan transaksi pengeluaran.</p>
+                </div>
             );
         };
 
@@ -2524,6 +2586,103 @@
         const container = document.getElementById('root');
         const root = ReactDOM.createRoot(container);
         root.render(<App />);
+
+        // --- Pendaftaran Service Worker untuk PWA ---
+        // Pastikan service-worker.js berada di root direktori Anda
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+
+    <script id="service-worker-script" type="javascript/plain">
+        // service-worker.js content
+        const CACHE_NAME = 'dompet-bersama-cache-v1';
+        const urlsToCache = [
+            '/',
+            '/index.html',
+            // Tambahkan aset-aset penting lainnya yang ingin di-cache
+            // Misalnya: CSS, JavaScript, gambar statis, dll.
+            // Perhatikan bahwa CDN eksternal mungkin tidak bisa di-cache dengan strategi ini
+            'https://cdn.tailwindcss.com',
+            'https://unpkg.com/react@18/umd/react.development.js',
+            'https://unpkg.com/react-dom@18/umd/react-dom.development.js',
+            'https://unpkg.com/recharts/umd/Recharts.min.js',
+            'https://unpkg.com/@babel/standalone/babel.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+            // Placeholder image for logo
+            'https://placehold.co/40x40/E2E8F0/4A5568?text=Logo',
+            'https://placehold.co/40x40/E2E8F0/4A5568?text=⏰', // Habit icon
+            'https://placehold.co/40x40/E2E8F0/4A5568?text=🗓️', // Calendar icon
+            'https://placehold.co/40x40/E2E8F0/4A5568?text=Error', // Error fallback
+            'https://placehold.co/100x100/E2E8F0/4A5568?text=?' // Profile placeholder
+        ];
+
+        self.addEventListener('install', event => {
+            event.waitUntil(
+                caches.open(CACHE_NAME)
+                    .then(cache => {
+                        console.log('Opened cache');
+                        return cache.addAll(urlsToCache);
+                    })
+            );
+        });
+
+        self.addEventListener('fetch', event => {
+            event.respondWith(
+                caches.match(event.request)
+                    .then(response => {
+                        // Cache hit - return response
+                        if (response) {
+                            return response;
+                        }
+                        // If not in cache, fetch from network
+                        return fetch(event.request).then(
+                            function(response) {
+                                // Check if we received a valid response
+                                if(!response || response.status !== 200 || response.type !== 'basic') {
+                                    return response;
+                                }
+
+                                // IMPORTANT: Clone the response. A response is a stream
+                                // and can only be consumed once. We must clone the response
+                                // so that we can send one to the browser and one to the cache.
+                                var responseToCache = response.clone();
+
+                                caches.open(CACHE_NAME)
+                                    .then(function(cache) {
+                                        cache.put(event.request, responseToCache);
+                                    });
+
+                                return response;
+                            }
+                        );
+                    })
+            );
+        });
+
+        self.addEventListener('activate', event => {
+            const cacheWhitelist = [CACHE_NAME];
+            event.waitUntil(
+                caches.keys().then(cacheNames => {
+                    return Promise.all(
+                        cacheNames.map(cacheName => {
+                            if (cacheWhitelist.indexOf(cacheName) === -1) {
+                                return caches.delete(cacheName);
+                            }
+                        })
+                    );
+                })
+            );
+        });
     </script>
 </body>
 </html>
