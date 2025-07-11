@@ -1648,31 +1648,31 @@
                 <div className="min-h-screen font-sans bg-gradient-to-br from-blue-50 to-indigo-100 pb-16"> {/* Add padding-bottom for fixed footer */}
                     {showProfileSetup && <ProfileSetup onProfileSubmit={handleProfileSubmit} user={user} />}
                     <header className="bg-white/70 backdrop-blur-sm shadow-md sticky top-0 z-20">
-                        <div className="max-w-4xl mx-auto p-4">
+                        <div className="max-w-4xl mx-auto p-2 sm:p-4"> {/* Mengurangi padding secara keseluruhan di mobile */}
                             {/* Mengurangi padding vertikal di mobile dan menyesuaikan ukuran teks */}
-                            <div className="flex flex-col sm:flex-row justify-between items-center py-2 sm:py-4">
-                                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-0">
+                            <div className="flex flex-col sm:flex-row justify-between items-center py-1 sm:py-4"> {/* Mengurangi py lebih lanjut */}
+                                <div className="flex items-center gap-1 sm:gap-3 mb-1 sm:mb-0"> {/* Mengurangi gap dan mb lebih lanjut */}
                                     {/* Menambahkan logo di sini */}
                                     <img
                                         src="uploaded:Gemini_Generated_Image_qi35cdqi35cdqi35.jpg-662755ab-9ede-4627-a24c-b7df549ee777"
                                         alt="Logo Dompet Bersama"
-                                        className="h-8 w-auto sm:h-10" /* Mengurangi tinggi logo di mobile */
-                                        onerror="this.onerror=null; this.src='https://placehold.co/40x40/E2E8F0/4A5568?text=Logo';"
+                                        className="h-6 w-auto sm:h-10" /* Mengurangi tinggi logo di mobile */
+                                        onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/40x40/E2E8F0/4A5568?text=Logo'; }} /* Mengubah onerror menjadi onError */
                                     />
-                                    <h1 className="text-lg font-bold text-blue-600 sm:text-xl">Ruang Bersama</h1> {/* Mengurangi ukuran teks di mobile */}
+                                    <h1 className="text-base font-bold text-blue-600 sm:text-xl">Ruang Bersama</h1> {/* Mengurangi ukuran teks di mobile */}
                                 </div>
                                 {/* Mengurangi ukuran MonthSelector di mobile */}
-                                <div className="flex items-center justify-center bg-white/50 backdrop-blur-sm p-1 rounded-lg sm:p-2">
-                                    <button onClick={() => changeMonth(-1)} className="px-2 py-0.5 rounded-md hover:bg-gray-200 transition duration-200 text-sm">‹</button>
-                                    <span className="font-semibold w-28 text-center text-gray-800 text-sm">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</span>
-                                    <button onClick={() => changeMonth(1)} className="px-2 py-0.5 rounded-md hover:bg-gray-200 transition duration-200 text-sm">›</button>
+                                <div className="flex items-center justify-center bg-white/50 backdrop-blur-sm p-0.5 rounded-lg sm:p-2"> {/* Mengurangi p lebih lanjut */}
+                                    <button onClick={() => changeMonth(-1)} className="px-1.5 py-0.5 rounded-md hover:bg-gray-200 transition duration-200 text-xs">‹</button> {/* Mengurangi px dan text-sm */}
+                                    <span className="font-semibold w-24 text-center text-gray-800 text-xs">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</span> {/* Mengurangi w dan text-sm */}
+                                    <button onClick={() => changeMonth(1)} className="px-1.5 py-0.5 rounded-md hover:bg-gray-200 transition duration-200 text-xs">›</button> {/* Mengurangi px dan text-sm */}
                                 </div>
-                                <button onClick={handleLogout} className="text-xs text-red-500 hover:underline mt-2 sm:mt-0">Logout</button> {/* Mengurangi ukuran teks di mobile */}
+                                <button onClick={handleLogout} className="text-xs text-red-500 hover:underline mt-1 sm:mt-0">Logout</button> {/* Mengurangi mt di mobile */}
                             </div>
-                            <div className="flex justify-center items-center mt-2"> {/* Mengurangi margin-top */}
-                                <button onClick={copyLedgerId} className="flex items-center space-x-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-mono py-0.5 px-2 rounded-full">
+                            <div className="flex justify-center items-center mt-1"> {/* Mengurangi mt */}
+                                <button onClick={copyLedgerId} className="flex items-center space-x-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-mono py-0.5 px-1.5 rounded-full"> {/* Mengurangi space-x dan px */}
                                     <span>Kode: {ledgerId}</span>
-                                    {copied ? <span className="text-green-500 ml-1">Tersalin!</span> : <CopyIcon className="h-4 w-4" />} {/* Mengurangi ukuran ikon */}
+                                    {copied ? <span className="text-green-500 ml-0.5">Tersalin!</span> : <CopyIcon className="h-3 w-3" />} {/* Mengurangi ukuran ikon */}
                                 </button>
                             </div>
                         </div>
@@ -1690,29 +1690,29 @@
 
                     {/* Footer Navigasi seperti Instagram */}
                     <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
-                        <nav className="flex justify-around items-center h-14 sm:h-16 max-w-xl mx-auto"> {/* Mengurangi tinggi footer di mobile */}
-                            <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'dashboard' ? 'text-indigo-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <HomeIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" /> {/* Mengurangi ukuran ikon di mobile */}
+                        <nav className="flex justify-around items-center h-12 sm:h-16 max-w-xl mx-auto"> {/* Mengurangi tinggi footer di mobile */}
+                            <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'dashboard' ? 'text-indigo-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}> {/* Mengurangi p lebih lanjut */}
+                                <HomeIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" /> {/* Mengurangi ukuran ikon di mobile */}
                                 <span>Beranda</span>
                             </button>
-                            <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'finance' ? 'text-blue-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <WalletIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" />
+                            <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'finance' ? 'text-blue-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <WalletIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Keuangan</span>
                             </button>
-                            <button onClick={() => setActiveTab('savings')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'savings' ? 'text-green-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <GiftIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" />
+                            <button onClick={() => setActiveTab('savings')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'savings' ? 'text-green-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <GiftIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Tabungan</span>
                             </button>
-                            <button onClick={() => setActiveTab('habits')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'habits' ? 'text-purple-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <CalendarIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" />
+                            <button onClick={() => setActiveTab('habits')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'habits' ? 'text-purple-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <CalendarIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Kebiasaan</span>
                             </button>
-                            <button onClick={() => setActiveTab('wishlist')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'wishlist' ? 'text-red-500 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <MapPinIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" />
+                            <button onClick={() => setActiveTab('wishlist')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'wishlist' ? 'text-red-500 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <MapPinIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Wishlist</span>
                             </button>
-                            <button onClick={() => setActiveTab('diary')} className={`flex flex-col items-center justify-center p-1 text-xs font-medium transition duration-200 ${activeTab === 'diary' ? 'text-yellow-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <BookOpenIcon className="h-5 w-5 mb-0.5 sm:h-6 sm:mb-1" />
+                            <button onClick={() => setActiveTab('diary')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'diary' ? 'text-yellow-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <BookOpenIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
                                 <span>Diary</span>
                             </button>
                         </nav>
