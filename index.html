@@ -14,13 +14,39 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!--
-        Peringatan: Menggunakan CDN Tailwind CSS dan Babel in-browser
-        tidak disarankan untuk produksi karena dapat memengaruhi kinerja.
-        Untuk aplikasi produksi, pertimbangkan untuk menginstal dan mengkompilasi
-        Tailwind CSS serta menggunakan proses build (misalnya, Webpack, Vite)
-        untuk Babel.
-    -->
+    <!-- Library untuk ekspor PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* Custom styles for a more appealing look */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .shadow-custom-blue {
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05);
+        }
+        .shadow-custom-green {
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.1), 0 4px 6px -2px rgba(16, 185, 129, 0.05);
+        }
+        .shadow-custom-red {
+            box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.1), 0 4px 6px -2px rgba(239, 68, 68, 0.05);
+        }
+        .shadow-custom-purple {
+            box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.1), 0 4px 6px -2px rgba(139, 92, 246, 0.05);
+        }
+        .shadow-custom-gray {
+            box-shadow: 0 10px 15px -3px rgba(107, 114, 128, 0.1), 0 4px 6px -2px rgba(107, 114, 128, 0.05);
+        }
+        /* Style for active tab button */
+        .tab-active {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .tab-active span {
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -30,8 +56,8 @@
         // Menggunakan versi Firebase SDK terbaru yang direkomendasikan (v11.6.1)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, serverTimestamp, updateDoc, arrayUnion, arrayRemove, increment, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // Menambahkan import untuk email/password auth dan signOut
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // Menambahkan import untuk email/password auth dan signOut, serta setPersistence
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- Konfigurasi Firebase ---
         // Pastikan apiKey ini valid dan tidak dimulai dengan "GANTI_DENGAN"
@@ -58,16 +84,56 @@
         const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
         const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
         const CopyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>;
-        const TargetIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-        const MoneyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
-        const PiggyBankIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>;
-        const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
+        const TargetIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        const MoneyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+        const PiggyBankIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>;
+        const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
         const CameraIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" /></svg>;
-        const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
-        const LockClosedIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /><path strokeLinecap="round" strokeLinejoin="round" d="M11 11V9a3 3 0 00-6 0v2m8 0V9a3 3 0 016 0v2" /></svg>;
+        const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
+        const LockClosedIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /><path strokeLinecap="round" strokeLinejoin="round" d="M11 11V9a3 3 0 00-6 0v2m8 0V9a3 3 0 016 0v2" /></svg>;
+        // Icon baru untuk menu bawah
+        const ChartBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2v-6a2 2 0 012-2h2a2 2 0 012 2v6a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2v10a2 2 0 01-2 2h-2a2 2 0 01-2-2v-7a2 2 0 00-2-2H9a2 2 0 00-2 2v7a2 2 0 002 2z" /></svg>;
+        const WalletIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
+        const GiftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        const CalendarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
+        const ShareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 100-2.684 3 3 0 000 2.684z" /></svg>;
+        const BookOpenIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.206 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.794 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.794 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.206 18 16.5 18s-3.332.477-4.5 1.253" /></svg>;
+        const MapPinIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243m0 0A8 8 0 1116.657 7.343a8 8 0 01-9.9 9.9z" /></svg>;
+        const BellIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
+
+
+        // Helper function to recursively remove undefined values from an object
+        // Firestore does not allow undefined values.
+        const removeUndefined = (obj) => {
+            if (obj === null || typeof obj !== 'object') {
+                return obj;
+            }
+
+            if (Array.isArray(obj)) {
+                return obj.map(removeUndefined);
+            }
+
+            const newObj = {};
+            for (const key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                    const value = obj[key];
+                    if (value !== undefined) {
+                        newObj[key] = removeUndefined(value);
+                    }
+                }
+            }
+            return newObj;
+        };
+
 
         const formatCurrency = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
         const getMonthYear = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        // Function to get month name in Indonesian
+        const getMonthName = (monthIndex) => {
+            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                                "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            return monthNames[monthIndex];
+        };
 
         // --- Komponen AuthScreen (Baru) ---
         const AuthScreen = ({ onLogin, onRegister, authError }) => {
@@ -157,34 +223,42 @@
 
         // --- Komponen Dashboard ---
         const Dashboard = ({ user, ledgerId, setActiveTab, ledgerDoc, selectedDate }) => {
-            const { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } = window.Recharts || {};
+            const { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } = window.Recharts || {};
             const [transactions, setTransactions] = React.useState([]);
             const [goals, setGoals] = React.useState([]);
             const [isLoading, setIsLoading] = React.useState(true);
 
-            const monthYear = getMonthYear(selectedDate);
-
+            // Fetch transactions for the entire year for line chart
             React.useEffect(() => {
-                // Pastikan db dan ledgerId ada sebelum mengambil data
                 if (!user || !ledgerId || !db) {
                     setIsLoading(false);
                     return;
                 }
                 setIsLoading(true);
-                const transQuery = query(collection(db, `ledgers/${ledgerId}/transactions`), where('monthYear', '==', monthYear));
+                // Fetch all transactions for the current year
+                const currentYear = selectedDate.getFullYear();
+                const transQuery = query(collection(db, `ledgers/${ledgerId}/transactions`));
                 const goalsQuery = query(collection(db, `ledgers/${ledgerId}/savings`));
 
                 const unsubTransactions = onSnapshot(transQuery, (snapshot) => {
-                    setTransactions(snapshot.docs.map(doc => doc.data()));
-                    setIsLoading(false); // Set isLoading to false after transactions are loaded
+                    const allTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // Filter transactions for the current year in memory
+                    const yearTransactions = allTransactions.filter(t => {
+                        if (t.createdAt && t.createdAt.toDate) {
+                            const date = t.createdAt.toDate();
+                            return date.getFullYear() === currentYear;
+                        }
+                        return false;
+                    });
+                    setTransactions(yearTransactions);
+                    setIsLoading(false);
                 }, (error) => {
                     console.error("Error fetching transactions:", error);
-                    setIsLoading(false); // Also set to false on error
+                    setIsLoading(false);
                 });
 
                 const unsubGoals = onSnapshot(goalsQuery, (snapshot) => {
                     setGoals(snapshot.docs.map(doc => doc.data()));
-                    // setIsLoading(false); // This might be set by unsubTransactions already
                 }, (error) => {
                     console.error("Error fetching goals:", error);
                 });
@@ -193,24 +267,30 @@
                     unsubTransactions();
                     unsubGoals();
                 };
-            }, [user, ledgerId, monthYear]);
+            }, [user, ledgerId, selectedDate]); // Depend on selectedDate to re-fetch for new year if month changes year
 
+            // Calculate current month's financials
             const { totalIncome, totalExpense, balance } = React.useMemo(() => {
-                const income = transactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + Number(t.amount), 0);
-                const expense = transactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + Number(t.amount), 0);
+                const currentMonthYear = getMonthYear(selectedDate);
+                const monthlyTransactions = transactions.filter(t => t.monthYear === currentMonthYear);
+
+                const income = monthlyTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + Number(t.amount), 0);
+                const expense = monthlyTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + Number(t.amount), 0);
                 return { totalIncome: income, totalExpense: expense, balance: income - expense };
-            }, [transactions]);
+            }, [transactions, selectedDate]);
 
             const { totalSaved, activeGoals } = React.useMemo(() => {
                 const saved = goals.reduce((sum, g) => sum + Number(g.currentAmount), 0);
                 return { totalSaved: saved, activeGoals: goals.length };
             }, [goals]);
 
+            // Data for Expense Distribution (Donut Chart) for current month
             const expenseChartData = React.useMemo(() => {
-                const expensesByUser = transactions
-                    .filter(t => t.type === 'pengeluaran')
+                const currentMonthYear = getMonthYear(selectedDate);
+                const monthlyExpenses = transactions.filter(t => t.type === 'pengeluaran' && t.monthYear === currentMonthYear);
+
+                const expensesByUser = monthlyExpenses
                     .reduce((acc, t) => {
-                        // FIX: Pastikan t.userName ada sebelum digunakan
                         const name = t.userName || 'Lainnya';
                         if (!acc[name]) acc[name] = 0;
                         acc[name] += Number(t.amount);
@@ -218,7 +298,44 @@
                     }, {});
 
                 return Object.keys(expensesByUser).map(name => ({ name, value: expensesByUser[name] }));
-            }, [transactions]);
+            }, [transactions, selectedDate]);
+
+            // Data for Financial Trend (Line Chart) for the year
+            const financialTrendData = React.useMemo(() => {
+                const monthlyData = {};
+                for (let i = 0; i < 12; i++) {
+                    const monthDate = new Date(selectedDate.getFullYear(), i, 1);
+                    const monthYearKey = getMonthYear(monthDate);
+                    monthlyData[monthYearKey] = {
+                        name: getMonthName(i),
+                        pemasukan: 0,
+                        pengeluaran: 0,
+                        saldo: 0
+                    };
+                }
+
+                transactions.forEach(t => {
+                    if (t.createdAt && t.createdAt.toDate) {
+                        const date = t.createdAt.toDate();
+                        const monthYearKey = getMonthYear(date);
+                        if (monthlyData[monthYearKey]) {
+                            if (t.type === 'pemasukan') {
+                                monthlyData[monthYearKey].pemasukan += Number(t.amount);
+                            } else if (t.type === 'pengeluaran') {
+                                monthlyData[monthYearKey].pengeluaran += Number(t.amount);
+                            }
+                        }
+                    }
+                });
+
+                // Calculate cumulative balance for the trend
+                let cumulativeBalance = 0;
+                return Object.values(monthlyData).map(month => {
+                    cumulativeBalance += (month.pemasukan - month.pengeluaran);
+                    return { ...month, saldo: cumulativeBalance };
+                });
+            }, [transactions, selectedDate]);
+
 
             const partner = React.useMemo(() => {
                 // FIX: Pastikan ledgerDoc dan participants ada sebelum mengakses
@@ -228,148 +345,532 @@
                 return { uid: partnerUid, ...ledgerDoc.participants[partnerUid] };
             }, [ledgerDoc, user]);
 
-            const COLORS = ['#3B82F6', '#EF4444', '#F97316', '#8B5CF6'];
+            const COLORS = ['#3B82F6', '#EF4444', '#F97316', '#8B5CF6', '#10B981', '#6366F1']; // More colors for donut chart
+
+            const handleExportPdf = async () => {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait, 'pt' for points, 'a4' size
+
+                // Capture the main content area
+                const content = document.getElementById('dashboard-content-to-export');
+                if (!content) {
+                    alert('Konten untuk diekspor tidak ditemukan!');
+                    return;
+                }
+
+                alert('Mempersiapkan laporan PDF. Ini mungkin memakan waktu sebentar...');
+
+                try {
+                    const canvas = await html2canvas(content, {
+                        scale: 2, // Increase scale for better quality
+                        useCORS: true, // Enable CORS for images if any
+                        logging: true,
+                        scrollY: -window.scrollY, // Capture elements outside viewport
+                        windowWidth: document.documentElement.offsetWidth,
+                        windowHeight: document.documentElement.offsetHeight
+                    });
+
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = 595; // A4 width in points
+                    const pageHeight = 842; // A4 height in points
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
+
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+
+                    pdf.save(`Laporan_Keuangan_${getMonthName(selectedDate.getMonth())}_${selectedDate.getFullYear()}.pdf`);
+                    alert('Laporan PDF berhasil dibuat!');
+                } catch (error) {
+                    console.error("Error generating PDF:", error);
+                    alert('Gagal membuat laporan PDF. Silakan coba lagi.');
+                }
+            };
+
 
             if (isLoading) return <p className="text-center text-gray-500 mt-8">Memuat Dashboard...</p>;
 
             return (
-                <div className="space-y-6">
-                    <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg flex justify-between items-center">
+                <div className="space-y-8" id="dashboard-content-to-export"> {/* ID for PDF export */}
+                    <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg flex flex-col md:flex-row justify-between items-center border border-gray-100">
                         <div>
-                            {/* FIX: Pastikan user dan user.name ada sebelum menampilkan */}
-                            <h2 className="text-xl font-bold text-gray-800">Selamat Datang, {user?.name || 'Pengguna'}!</h2>
-                            <p className="text-gray-600">Ini ringkasan untuk bulan {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}.</p>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-1">Selamat Datang, {user?.name || 'Pengguna'}!</h2>
+                            <p className="text-gray-600">Ini ringkasan keuangan Anda untuk bulan {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}.</p>
                         </div>
                         {partner && (
-                            <div className="text-right">
+                            <div className="text-right mt-4 md:mt-0">
                                 <p className="text-sm text-gray-500">Pasangan Anda</p>
-                                <div className="flex items-center gap-2">
-                                    {/* FIX: Pastikan partner.name ada sebelum menampilkan */}
-                                    <span className="font-semibold">{partner.name || 'Anonim'}</span>
-                                    {/* FIX: Pastikan partner.photoURL ada sebelum menampilkan */}
-                                    <img src={partner.photoURL || 'https://placehold.co/40x40/E2E8F0/4A5568?text=?'} alt={partner.name || 'Partner'} className="w-10 h-10 rounded-full object-cover" />
+                                <div className="flex items-center justify-end gap-2">
+                                    <span className="font-semibold text-gray-700">{partner.name || 'Anonim'}</span>
+                                    <img src={partner.photoURL || 'https://placehold.co/40x40/E2E8F0/4A5568?text=?'} alt={partner.name || 'Partner'} className="w-10 h-10 rounded-full object-cover border-2 border-blue-300" />
                                 </div>
                             </div>
                         )}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center"><p className="text-sm text-gray-500">Total Saldo Bulan Ini</p><p className={`text-4xl font-bold ${balance >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{formatCurrency(balance)}</p></div>
-                        <div className="bg-green-100/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center"><p className="text-sm text-green-700">Pemasukan Bulan Ini</p><p className="text-2xl font-bold text-green-800">{formatCurrency(totalIncome)}</p></div>
-                        <div className="bg-red-100/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center"><p className="text-sm text-red-700">Pengeluaran Bulan Ini</p><p className="text-2xl font-bold text-red-800">{formatCurrency(totalExpense)}</p></div>
+
+                    {/* Rekap Bulanan & Ringkasan */}
+                    <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <h3 className="font-bold text-xl text-gray-800 mb-4">Rekap Keuangan Bulan Ini</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                            <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm border border-green-200">
+                                <p className="text-sm text-green-700 font-medium">Pemasukan</p>
+                                <p className="text-3xl font-bold text-green-800 mt-1">{formatCurrency(totalIncome)}</p>
+                            </div>
+                            <div className="p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-sm border border-red-200">
+                                <p className="text-sm text-red-700 font-medium">Pengeluaran</p>
+                                <p className="text-3xl font-bold text-red-800 mt-1">{formatCurrency(totalExpense)}</p>
+                            </div>
+                            <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-sm border border-blue-200">
+                                <p className="text-sm text-blue-700 font-medium">Saldo Bersih</p>
+                                <p className={`text-3xl font-bold ${balance >= 0 ? 'text-blue-800' : 'text-red-800'} mt-1`}>{formatCurrency(balance)}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleExportPdf}
+                            className="w-full mt-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 flex items-center justify-center shadow-custom-blue"
+                        >
+                            <ShareIcon />
+                            <span>Ekspor Laporan PDF</span>
+                        </button>
                     </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                        <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg"><h3 className="font-bold text-lg text-gray-800 mb-4">Distribusi Pengeluaran</h3>{PieChart && expenseChartData.length > 0 ? (<div className="h-60"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={expenseChartData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} fill="#8884d8" paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}><Tooltip formatter={(value) => formatCurrency(value)} />{expenseChartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie></PieChart></ResponsiveContainer></div>) : <p className="text-center text-gray-400 pt-16">Belum ada data pengeluaran.</p>}</div>
-                        <div className="lg:col-span-3 bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg"><h3 className="font-bold text-lg text-gray-800 mb-4">Progres Tabungan (Total)</h3><div className="space-y-4"><div className="flex justify-around text-center"><div><p className="text-sm text-gray-500">Total Dana Terkumpul</p><p className="text-2xl font-bold text-green-600">{formatCurrency(totalSaved)}</p></div><div><p className="text-sm text-gray-500">Target Aktif</p><p className="text-2xl font-bold text-blue-600">{activeGoals}</p></div></div>{goals.length > 0 ? (<div className="mt-4">{goals.slice(0, 2).map(g => { const progress = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0; return (<div key={g.id} className="mb-3"><div className="flex justify-between text-sm font-medium"><p>{g.name}</p><p>{progress.toFixed(0)}%</p></div><div className="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div></div></div>)})}</div>) : (<p className="text-center text-gray-400 mt-8">Belum ada target tabungan.</p>)}<button onClick={() => setActiveTab('savings')} className="w-full mt-4 bg-green-100 text-green-800 font-bold py-2 px-4 rounded-lg hover:bg-green-200">Lihat Semua Tabungan</button></div></div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Distribusi Pengeluaran (Donut Chart) */}
+                        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100">
+                            <h3 className="font-bold text-xl text-gray-800 mb-4">Distribusi Pengeluaran Bulan Ini</h3>
+                            {PieChart && expenseChartData.length > 0 ? (
+                                <div className="h-72"> {/* Increased height for better visibility */}
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={expenseChartData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={60} // Inner radius for donut effect
+                                                outerRadius={90} // Outer radius
+                                                fill="#8884d8"
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                animationBegin={0}
+                                                animationDuration={800}
+                                            >
+                                                <Tooltip formatter={(value) => formatCurrency(value)} />
+                                                {expenseChartData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Legend verticalAlign="bottom" height={36} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <p className="text-center text-gray-400 pt-16">Belum ada data pengeluaran bulan ini.</p>
+                            )}
+                        </div>
+
+                        {/* Tren Keuangan (Line Chart) */}
+                        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100">
+                            <h3 className="font-bold text-xl text-gray-800 mb-4">Tren Keuangan Tahun Ini</h3>
+                            {LineChart && financialTrendData.length > 0 ? (
+                                <div className="h-72"> {/* Increased height */}
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart
+                                            data={financialTrendData}
+                                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                                            <XAxis dataKey="name" stroke="#6b7280" />
+                                            <YAxis stroke="#6b7280" tickFormatter={(value) => formatCurrency(value)} />
+                                            <Tooltip formatter={(value) => formatCurrency(value)} />
+                                            <Legend />
+                                            <Line type="monotone" dataKey="pemasukan" stroke="#10B981" activeDot={{ r: 8 }} name="Pemasukan" />
+                                            <Line type="monotone" dataKey="pengeluaran" stroke="#EF4444" activeDot={{ r: 8 }} name="Pengeluaran" />
+                                            <Line type="monotone" dataKey="saldo" stroke="#3B82F6" activeDot={{ r: 8 }} name="Saldo Akhir" />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <p className="text-center text-gray-400 pt-16">Belum ada data tren keuangan tahun ini.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Progres Tabungan (Tetap) */}
+                    <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <h3 className="font-bold text-xl text-gray-800 mb-4">Progres Tabungan (Total)</h3>
+                        <div className="space-y-4">
+                            <div className="flex justify-around text-center">
+                                <div>
+                                    <p className="text-sm text-gray-500">Total Dana Terkumpul</p>
+                                    <p className="text-2xl font-bold text-green-600">{formatCurrency(totalSaved)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Target Aktif</p>
+                                    <p className="text-2xl font-bold text-blue-600">{activeGoals}</p>
+                                </div>
+                            </div>
+                            {goals.length > 0 ? (
+                                <div className="mt-4">
+                                    {goals.slice(0, 2).map(g => {
+                                        const progress = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
+                                        return (
+                                            <div key={g.id} className="mb-3">
+                                                <div className="flex justify-between text-sm font-medium">
+                                                    <p className="text-gray-700">{g.name}</p>
+                                                    <p className="text-green-600">{progress.toFixed(0)}%</p>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                                                    <div className="bg-green-500 h-2.5 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress > 100 ? 100 : progress}%` }}></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-center text-gray-400 mt-8">Belum ada target tabungan.</p>
+                            )}
+                            <button onClick={() => setActiveTab('savings')} className="w-full mt-4 bg-green-100 text-green-800 font-bold py-2 px-4 rounded-lg hover:bg-green-200 transition duration-200">Lihat Semua Tabungan</button>
+                        </div>
                     </div>
                 </div>
             );
         };
 
-        // --- Komponen Pelacak Keuangan ---
-        const FinanceTracker = ({ user, ledgerId, selectedDate }) => {
-            const [transactions, setTransactions] = React.useState([]);
-            const [description, setDescription] = React.useState('');
-            const [amount, setAmount] = React.useState('');
-            const [type, setType] = React.useState('pengeluaran');
+        // --- Komponen CoupleCalendar (Baru) ---
+        const CoupleCalendar = ({ user, ledgerId, selectedDate, requestNotificationPermission }) => {
+            const [events, setEvents] = React.useState([]);
+            const [newEventTitle, setNewEventTitle] = React.useState('');
+            const [newEventDate, setNewEventDate] = React.useState(selectedDate.toISOString().split('T')[0]);
+            const [newEventTime, setNewEventTime] = React.useState(''); // New state for reminder time
+            const [isLoading, setIsLoading] = React.useState(true);
+            const [error, setError] = React.useState('');
+
+            const daysInMonth = React.useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate(), [selectedDate]);
+            const firstDayOfMonth = React.useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay(), [selectedDate]); // 0 for Sunday, 1 for Monday etc.
+
+            const scheduleNotification = (title, date, time) => {
+                if (Notification.permission === "granted") {
+                    const [year, month, day] = date.split('-').map(Number);
+                    const [hours, minutes] = time.split(':').map(Number);
+                    const notificationTime = new Date(year, month - 1, day, hours, minutes, 0);
+                    const now = new Date();
+
+                    if (notificationTime > now) {
+                        const delay = notificationTime.getTime() - now.getTime();
+                        setTimeout(() => {
+                            new Notification('Pengingat Acara Pasangan', {
+                                body: `Acara: ${title} pada ${new Date(date).toLocaleDateString('id-ID')} pukul ${time}`,
+                                icon: 'https://placehold.co/40x40/E2E8F0/4A5568?text=🔔' // Placeholder icon
+                            });
+                        }, delay);
+                        console.log(`Notifikasi dijadwalkan untuk: ${title} pada ${notificationTime}`);
+                    } else {
+                        console.log(`Waktu pengingat untuk "${title}" sudah lewat.`);
+                    }
+                } else if (Notification.permission === "denied") {
+                    alert("Izin notifikasi ditolak. Silakan izinkan notifikasi di pengaturan browser Anda untuk pengingat.");
+                } else {
+                    // Permission is default, ask for it
+                    requestNotificationPermission();
+                }
+            };
+
+
+            React.useEffect(() => {
+                if (!user || !ledgerId || !db) { setIsLoading(false); setEvents([]); return; }
+                setIsLoading(true);
+                const collectionPath = `ledgers/${ledgerId}/events`;
+                const q = query(collection(db, collectionPath),
+                    where('monthYear', '==', getMonthYear(selectedDate))
+                );
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const fetchedEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setEvents(fetchedEvents);
+                    setIsLoading(false);
+
+                    // Schedule notifications for new/updated events
+                    fetchedEvents.forEach(event => {
+                        if (event.reminderTime) {
+                            scheduleNotification(event.title, event.date, event.reminderTime);
+                        }
+                    });
+
+                }, (err) => { console.error("Firestore Error:", err); setError("Gagal memuat acara."); setIsLoading(false); });
+                return () => unsubscribe();
+            }, [user, ledgerId, selectedDate]);
+
+            const addEvent = async (e) => {
+                e.preventDefault();
+                if (!newEventTitle || !newEventDate || !user || !ledgerId || !db) return;
+                try {
+                    const eventData = {
+                        title: newEventTitle,
+                        date: newEventDate,
+                        monthYear: getMonthYear(new Date(newEventDate)),
+                        userId: user.uid,
+                        userName: user.name || 'Anonim',
+                        createdAt: serverTimestamp()
+                    };
+                    if (newEventTime) {
+                        eventData.reminderTime = newEventTime;
+                    }
+
+                    await addDoc(collection(db, `ledgers/${ledgerId}/events`), removeUndefined(eventData)); // Sanitize before saving
+                    setNewEventTitle(''); setNewEventTime(''); setError('');
+                } catch (err) { console.error("Error adding event:", err); setError("Gagal menambah acara."); }
+            };
+
+            const deleteEvent = async (id) => {
+                if(!db) return;
+                try { await deleteDoc(doc(db, `ledgers/${ledgerId}/events/${id}`)); } catch (err) { console.error("Error deleting event:", err); setError("Gagal menghapus acara."); }
+            };
+
+            const calendarDays = [];
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                calendarDays.push(<div key={`empty-${i}`} className="p-2 text-center text-gray-400"></div>);
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const fullDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayEvents = events.filter(event => event.date === fullDate);
+                calendarDays.push(
+                    <div key={day} className="p-2 border border-gray-200 rounded-lg flex flex-col items-center justify-start min-h-[80px] bg-white/70 backdrop-blur-sm shadow-sm">
+                        <span className="font-semibold text-gray-800">{day}</span>
+                        <div className="mt-1 text-xs text-left w-full space-y-1">
+                            {dayEvents.map(event => (
+                                <div key={event.id} className="bg-blue-100 text-blue-800 rounded-md px-2 py-1 flex justify-between items-center">
+                                    <span className="truncate">{event.title} {event.reminderTime ? `(${event.reminderTime})` : ''}</span>
+                                    <button onClick={() => deleteEvent(event.id)} className="text-blue-500 hover:text-blue-700 ml-1">
+                                        <TrashIcon className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <>
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Tambah Acara Baru</h2>
+                        <form onSubmit={addEvent} className="space-y-3">
+                            <input type="text" value={newEventTitle} onChange={(e) => setNewEventTitle(e.target.value)} placeholder="Judul Acara" className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" required />
+                            <input type="date" value={newEventDate} onChange={(e) => setNewEventDate(e.target.value)} className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" required />
+                            <input type="time" value={newEventTime} onChange={(e) => setNewEventTime(e.target.value)} placeholder="Waktu Pengingat (opsional)" className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" />
+                            <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 flex items-center justify-center shadow-custom-blue">
+                                <PlusIcon /><span>Tambah Acara</span>
+                            </button>
+                        </form>
+                        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                    </div>
+
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Kalender Pasangan - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
+                        {isLoading ? <p className="text-center text-gray-500">Memuat kalender...</p> : (
+                            <div className="grid grid-cols-7 gap-2 text-sm">
+                                {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => (
+                                    <div key={day} className="font-bold text-center text-gray-600 p-2">{day}</div>
+                                ))}
+                                {calendarDays}
+                            </div>
+                        )}
+                    </div>
+                </>
+            );
+        };
+
+        // --- Komponen Diary (Baru) ---
+        const Diary = ({ user, ledgerId, selectedDate }) => {
+            const [entries, setEntries] = React.useState([]);
+            const [newEntryText, setNewEntryText] = React.useState('');
             const [isLoading, setIsLoading] = React.useState(true);
             const [error, setError] = React.useState('');
             const monthYear = getMonthYear(selectedDate);
 
             React.useEffect(() => {
-                if (!user || !ledgerId || !db) {
-                    setIsLoading(false);
-                    setTransactions([]);
-                    return;
-                }
+                if (!user || !ledgerId || !db) { setIsLoading(false); setEntries([]); return; }
                 setIsLoading(true);
-                const collectionPath = `ledgers/${ledgerId}/transactions`;
-                const q = query(collection(db, collectionPath), where('monthYear', '==', monthYear));
+                const collectionPath = `ledgers/${ledgerId}/diaryEntries`;
+                const q = query(collection(db, collectionPath),
+                    where('monthYear', '==', monthYear),
+                    // orderBy('createdAt', 'desc') // Removed orderBy to avoid index issues, sort in memory
+                );
                 const unsubscribe = onSnapshot(q, (snapshot) => {
-                    const newTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
-                    setTransactions(newTransactions);
+                    const fetchedEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setEntries(fetchedEntries.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0)));
                     setIsLoading(false);
-                }, (err) => {
-                    console.error("Firestore Error:", err);
-                    setError("Gagal memuat data transaksi.");
-                    setIsLoading(false);
-                });
+                }, (err) => { console.error("Firestore Error:", err); setError("Gagal memuat entri diary."); setIsLoading(false); });
                 return () => unsubscribe();
-            }, [user, ledgerId, monthYear]);
+            }, [user, ledgerId, selectedDate]);
 
-            const addTransaction = async (e) => {
+            const addEntry = async (e) => {
                 e.preventDefault();
-                // FIX: Pastikan user dan user.name ada sebelum menambah transaksi
-                if (!description || !amount || !user || !user.uid || !ledgerId || !db) {
-                    setError("Deskripsi, jumlah, atau informasi pengguna tidak lengkap.");
-                    return;
-                }
+                if (!newEntryText || !user || !ledgerId || !db) return;
                 try {
-                    const collectionPath = `ledgers/${ledgerId}/transactions`;
-                    await addDoc(collection(db, collectionPath), {
-                        description,
-                        amount: Number(amount),
-                        type,
+                    await addDoc(collection(db, `ledgers/${ledgerId}/diaryEntries`), {
+                        text: newEntryText,
                         userId: user.uid,
-                        userName: user.name || 'Anonim', // FIX: Fallback jika user.name null
+                        userName: user.name || 'Anonim',
                         createdAt: serverTimestamp(),
                         monthYear: monthYear
                     });
-                    setDescription('');
-                    setAmount('');
-                    setError('');
-                } catch (err) {
-                    console.error("Error adding transaction:", err);
-                    setError("Gagal menambah transaksi.");
-                }
+                    setNewEntryText(''); setError('');
+                } catch (err) { console.error("Error adding diary entry:", err); setError("Gagal menambah entri diary."); }
             };
 
-            const deleteTransaction = async (id) => {
-                if (!db) return;
-                try {
-                    await deleteDoc(doc(db, `ledgers/${ledgerId}/transactions/${id}`));
-                } catch (err) {
-                    console.error("Error deleting transaction:", err);
-                    setError("Gagal menghapus transaksi.");
-                }
+            const deleteEntry = async (id) => {
+                if(!db) return;
+                try { await deleteDoc(doc(db, `ledgers/${ledgerId}/diaryEntries/${id}`)); } catch (err) { console.error("Error deleting diary entry:", err); setError("Gagal menghapus entri diary."); }
             };
 
             return (
                 <>
-                    <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Tambah Transaksi Baru</h2>
-                        <form onSubmit={addTransaction} className="space-y-4">
-                            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Contoh: Belanja bulanan" className="w-full p-3 border border-gray-300 rounded-lg" required />
-                            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Jumlah (misal: 50000)" className="w-full p-3 border border-gray-300 rounded-lg" required />
-                            <div className="flex space-x-4">
-                                <label className={`flex-1 flex items-center justify-center p-3 border rounded-lg cursor-pointer ${type === 'pengeluaran' ? 'bg-blue-50 border-blue-500' : ''}`}>
-                                    <input type="radio" name="type" value="pengeluaran" checked={type === 'pengeluaran'} onChange={(e) => setType(e.target.value)} className="hidden" />
-                                    <span>Pengeluaran</span>
-                                </label>
-                                <label className={`flex-1 flex items-center justify-center p-3 border rounded-lg cursor-pointer ${type === 'pemasukan' ? 'bg-blue-50 border-blue-500' : ''}`}>
-                                    <input type="radio" name="type" value="pemasukan" checked={type === 'pemasukan'} onChange={(e) => setType(e.target.value)} className="hidden" />
-                                    <span>Pemasukan</span>
-                                </label>
-                            </div>
-                            <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center">
-                                <PlusIcon /><span>Tambah</span>
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Tulis Entri Diary Baru</h2>
+                        <form onSubmit={addEntry} className="space-y-4">
+                            <textarea
+                                value={newEntryText}
+                                onChange={(e) => setNewEntryText(e.target.value)}
+                                placeholder="Apa yang terjadi hari ini? Bagikan pikiran Anda..."
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200 min-h-[100px]"
+                                required
+                            ></textarea>
+                            <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 flex items-center justify-center shadow-custom-blue">
+                                <PlusIcon /><span>Tambah Entri</span>
                             </button>
                         </form>
                         {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                     </div>
-                    <div>
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Riwayat Transaksi - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
-                        {isLoading ? <p className="text-center text-gray-500">Memuat data...</p> : transactions.length === 0 ? <div className="text-center bg-white/70 backdrop-blur-sm rounded-xl shadow-lg p-8"><p className="text-gray-500">Belum ada transaksi bulan ini.</p></div> : (
-                            <div className="space-y-3">
-                                {transactions.map(t => (
-                                    <div key={t.id} className="bg-white/70 backdrop-blur-sm rounded-xl shadow-md p-4 flex items-center justify-between">
-                                        <div>
-                                            <p className="font-semibold text-gray-800">{t.description}</p>
-                                            {/* FIX: Pastikan t.userName ada sebelum menampilkan */}
-                                            <p className="text-sm text-gray-500">{t.userName || 'Anonim'} - {t.createdAt ? new Date(t.createdAt.toDate()).toLocaleDateString('id-ID') : 'Baru'}</p>
-                                        </div>
-                                        <div className="flex items-center space-x-4">
-                                            <p className={`font-bold ${t.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(t.amount)}</p>
-                                            <button onClick={() => deleteTransaction(t.id)} className="text-gray-400 hover:text-red-500 p-2 rounded-full"><TrashIcon /></button>
+
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Entri Diary Anda - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
+                        {isLoading ? <p className="text-center text-gray-500">Memuat entri...</p> : entries.length === 0 ? <div className="text-center text-gray-500 p-8">Belum ada entri diary bulan ini.</div> : (
+                            <div className="space-y-4">
+                                {entries.map(entry => (
+                                    <div key={entry.id} className="bg-gray-50 rounded-xl p-4 shadow-sm border border-gray-200">
+                                        <p className="text-sm text-gray-600 mb-2">
+                                            <span className="font-semibold">{entry.userName || 'Anonim'}</span> pada {entry.createdAt ? new Date(entry.createdAt.toDate()).toLocaleString('id-ID') : 'Baru'}
+                                        </p>
+                                        <p className="text-gray-800 mb-3">{entry.text}</p>
+                                        <button onClick={() => deleteEntry(entry.id)} className="text-red-500 hover:text-red-700 text-sm flex items-center transition duration-200">
+                                            <TrashIcon className="h-4 w-4 mr-1" /> Hapus
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </>
+            );
+        };
+
+        // --- Komponen TravelWishlist (Baru) ---
+        const TravelWishlist = ({ user, ledgerId }) => {
+            const [wishlistItems, setWishlistItems] = React.useState([]);
+            const [newDestination, setNewDestination] = React.useState('');
+            const [newDescription, setNewDescription] = React.useState('');
+            const [newPhoto, setNewPhoto] = React.useState(null); // Base64 string
+            const [photoPreview, setPhotoPreview] = React.useState(null);
+            const [isLoading, setIsLoading] = React.useState(true);
+            const [error, setError] = React.useState('');
+            const fileInputRef = React.useRef();
+
+            React.useEffect(() => {
+                if (!user || !ledgerId || !db) { setIsLoading(false); setWishlistItems([]); return; }
+                setIsLoading(true);
+                const collectionPath = `ledgers/${ledgerId}/travelWishlist`;
+                const q = query(collection(db, collectionPath));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    setWishlistItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    setIsLoading(false);
+                }, (err) => { console.error("Firestore Error:", err); setError("Gagal memuat wishlist."); setIsLoading(false); });
+                return () => unsubscribe();
+            }, [user, ledgerId]);
+
+            const handleFileChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setNewPhoto(reader.result); // Base64 string
+                        setPhotoPreview(reader.result);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    setNewPhoto(null);
+                    setPhotoPreview(null);
+                }
+            };
+
+            const addWishlistItem = async (e) => {
+                e.preventDefault();
+                if (!newDestination || !user || !ledgerId || !db) return;
+                try {
+                    await addDoc(collection(db, `ledgers/${ledgerId}/travelWishlist`), {
+                        destination: newDestination,
+                        description: newDescription,
+                        photoBase64: newPhoto || null, // Store Base64 or null
+                        userId: user.uid,
+                        userName: user.name || 'Anonim',
+                        createdAt: serverTimestamp()
+                    });
+                    setNewDestination(''); setNewDescription(''); setNewPhoto(null); setPhotoPreview(null); setError('');
+                    if (fileInputRef.current) fileInputRef.current.value = ''; // Clear file input
+                } catch (err) { console.error("Error adding wishlist item:", err); setError("Gagal menambah item wishlist."); }
+            };
+
+            const deleteWishlistItem = async (id) => {
+                if(!db) return;
+                try { await deleteDoc(doc(db, `ledgers/${ledgerId}/travelWishlist/${id}`)); } catch (err) { console.error("Error deleting wishlist item:", err); setError("Gagal menghapus item wishlist."); }
+            };
+
+            return (
+                <>
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Tambah Tempat Liburan Impian</h2>
+                        <form onSubmit={addWishlistItem} className="space-y-4">
+                            <input type="text" value={newDestination} onChange={(e) => setNewDestination(e.target.value)} placeholder="Destinasi (misal: Bali, Tokyo)" className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200" required />
+                            <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Mengapa Anda ingin pergi ke sana?" className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200 min-h-[80px]"></textarea>
+                            <div className="flex items-center space-x-4">
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                                {photoPreview && (
+                                    <img src={photoPreview} alt="Pratinjau Foto" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                                )}
+                            </div>
+                            <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 flex items-center justify-center shadow-custom-blue">
+                                <PlusIcon /><span>Tambah Wishlist</span>
+                            </button>
+                        </form>
+                        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                    </div>
+
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Daftar Wishlist Liburan Anda</h2>
+                        {isLoading ? <p className="text-center text-gray-500">Memuat wishlist...</p> : wishlistItems.length === 0 ? <div className="text-center text-gray-500 p-8">Belum ada tempat liburan di wishlist Anda.</div> : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {wishlistItems.map(item => (
+                                    <div key={item.id} className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                        {item.photoBase64 && (
+                                            <img src={item.photoBase64} alt={item.destination} className="w-full h-40 object-cover" />
+                                        )}
+                                        <div className="p-4">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-bold text-lg text-gray-800">{item.destination}</h3>
+                                                <button onClick={() => deleteWishlistItem(item.id)} className="text-gray-400 hover:text-red-500 transition duration-200">
+                                                    <TrashIcon />
+                                                </button>
+                                            </div>
+                                            <p className="text-sm text-gray-700 mb-2">{item.description}</p>
+                                            <p className="text-xs text-gray-500">Ditambahkan oleh {item.userName || 'Anonim'} pada {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString('id-ID') : 'Baru'}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -380,261 +881,10 @@
             );
         };
 
-        // --- Komponen Pelacak Kebiasaan ---
-        const HabitTracker = ({ user, ledgerId, selectedDate }) => {
-            const [habits, setHabits] = React.useState([]);
-            const [newHabitName, setNewHabitName] = React.useState('');
-            const [isLoading, setIsLoading] = React.useState(true);
-            const [error, setError] = React.useState('');
-            const monthYear = getMonthYear(selectedDate);
-
-            const daysInMonth = React.useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate(), [selectedDate]);
-            const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-
-            React.useEffect(() => {
-                if (!user || !ledgerId || !db) {
-                    setIsLoading(false);
-                    setHabits([]);
-                    return;
-                }
-                setIsLoading(true);
-                const collectionPath = `ledgers/${ledgerId}/habits`;
-                const q = query(collection(db, collectionPath));
-                const unsubscribe = onSnapshot(q, (snapshot) => {
-                    setHabits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    setIsLoading(false);
-                }, (err) => {
-                    console.error("Firestore Error:", err);
-                    setError("Gagal memuat data kebiasaan.");
-                    setIsLoading(false);
-                });
-                return () => unsubscribe();
-            }, [user, ledgerId]);
-
-            const addHabit = async (e) => {
-                e.preventDefault();
-                // FIX: Pastikan user dan user.uid ada sebelum menambah kebiasaan
-                if (!newHabitName || !user || !user.uid || !ledgerId || !db) {
-                    setError("Nama kebiasaan atau informasi pengguna tidak lengkap.");
-                    return;
-                }
-                try {
-                    const collectionPath = `ledgers/${ledgerId}/habits`;
-                    await addDoc(collection(db, collectionPath), {
-                        name: newHabitName,
-                        completions: [],
-                        createdAt: serverTimestamp(),
-                        userId: user.uid
-                    });
-                    setNewHabitName('');
-                    setError('');
-                } catch (err) {
-                    console.error("Error adding habit:", err);
-                    setError("Gagal menambah kebiasaan.");
-                }
-            };
-
-            const toggleHabitCompletion = async (habit, day) => {
-                if (!db) return;
-                const dateString = `${monthYear}-${String(day).padStart(2, '0')}`;
-                const currentCompletions = habit.completions || [];
-                const isDone = currentCompletions.includes(dateString);
-                const newCompletions = isDone ? arrayRemove(dateString) : arrayUnion(dateString);
-                try {
-                    await updateDoc(doc(db, `ledgers/${ledgerId}/habits/${habit.id}`), { completions: newCompletions });
-                } catch (err) {
-                    console.error("Error toggling habit:", err);
-                }
-            };
-
-            const deleteHabit = async (id) => {
-                if (!db) return;
-                try {
-                    await deleteDoc(doc(db, `ledgers/${ledgerId}/habits/${id}`));
-                } catch (err) {
-                    console.error("Error deleting habit:", err);
-                }
-            };
-
-            return (
-                <>
-                    <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Tambah Kebiasaan Baru</h2>
-                        <form onSubmit={addHabit} className="flex space-x-2">
-                            <input type="text" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} placeholder="Contoh: Olahraga 15 menit" className="flex-grow p-3 border rounded-lg" required />
-                            <button type="submit" className="bg-purple-600 text-white font-bold p-3 rounded-lg hover:bg-purple-700"><PlusIcon /></button>
-                        </form>
-                        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Tabel Kebiasaan - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
-                        {isLoading ? <p>Memuat...</p> : habits.length === 0 ? <div className="text-center bg-white/70 backdrop-blur-sm rounded-xl p-8"><p className="text-gray-500">Belum ada kebiasaan.</p></div> : (
-                            <div className="overflow-x-auto bg-white/70 backdrop-blur-sm rounded-xl shadow-lg p-4">
-                                <table className="w-full border-collapse text-sm text-center">
-                                    <thead>
-                                        <tr className="bg-gray-50">
-                                            <th>Kebiasaan</th>
-                                            {daysArray.map(day => <th key={day} className="p-2 w-10">{day}</th>)}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {habits.map(h => (
-                                            <tr key={h.id} className="border-b">
-                                                <td className="p-2 text-left font-semibold sticky left-0 bg-white/70 backdrop-blur-sm flex items-center justify-between">
-                                                    <span className="truncate pr-2">{h.name}</span>
-                                                    <button onClick={() => deleteHabit(h.id)} className="text-gray-300 hover:text-red-500"><TrashIcon /></button>
-                                                </td>
-                                                {daysArray.map(day => {
-                                                    const dateString = `${monthYear}-${String(day).padStart(2, '0')}`;
-                                                    const isDone = (h.completions || []).includes(dateString);
-                                                    return (
-                                                        <td key={day} className="p-2 border-l">
-                                                            <input type="checkbox" checked={isDone} onChange={() => toggleHabitCompletion(h, day)} className="w-5 h-5 rounded text-purple-600 focus:ring-purple-500 cursor-pointer" />
-                                                        </td>
-                                                    );
-                                                })}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                </>
-            );
-        };
-
-        // --- Komponen Pelacak Tabungan ---
-        const SavingsTracker = ({ user, ledgerId }) => {
-            const [goals, setGoals] = React.useState([]);
-            const [newGoalName, setNewGoalName] = React.useState('');
-            const [newTargetAmount, setNewTargetAmount] = React.useState('');
-            const [amountToAdd, setAmountToAdd] = React.useState({});
-            const [isLoading, setIsLoading] = React.useState(true);
-            const [error, setError] = React.useState('');
-
-            React.useEffect(() => {
-                if (!user || !ledgerId || !db) {
-                    setIsLoading(false);
-                    setGoals([]);
-                    return;
-                }
-                setIsLoading(true);
-                const collectionPath = `ledgers/${ledgerId}/savings`;
-                const q = query(collection(db, collectionPath));
-                const unsubscribe = onSnapshot(q, (snapshot) => {
-                    setGoals(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    setIsLoading(false);
-                }, (err) => {
-                    console.error("Firestore Error:", err);
-                    setError("Gagal memuat data tabungan.");
-                    setIsLoading(false);
-                });
-                return () => unsubscribe();
-            }, [user, ledgerId]);
-
-            const addGoal = async (e) => {
-                e.preventDefault();
-                // FIX: Pastikan user dan user.uid ada sebelum menambah target
-                if (!newGoalName || !newTargetAmount || !user || !user.uid || !ledgerId || !db) {
-                    setError("Nama target, jumlah target, atau informasi pengguna tidak lengkap.");
-                    return;
-                }
-                try {
-                    const collectionPath = `ledgers/${ledgerId}/savings`;
-                    await addDoc(collection(db, collectionPath), {
-                        name: newGoalName,
-                        targetAmount: Number(newTargetAmount),
-                        currentAmount: 0,
-                        createdAt: serverTimestamp(),
-                        userId: user.uid
-                    });
-                    setNewGoalName('');
-                    setNewTargetAmount('');
-                    setError('');
-                } catch (err) {
-                    console.error("Error adding goal:", err);
-                    setError("Gagal menambah target tabungan.");
-                }
-            };
-
-            const addFunds = async (goalId) => {
-                if (!db) return;
-                const amount = Number(amountToAdd[goalId] || 0);
-                if (amount <= 0) {
-                    setError("Jumlah harus lebih besar dari nol.");
-                    return;
-                }
-                try {
-                    await updateDoc(doc(db, `ledgers/${ledgerId}/savings/${goalId}`), { currentAmount: increment(amount) });
-                    setAmountToAdd(prev => ({ ...prev, [goalId]: '' }));
-                    setError('');
-                } catch (err) {
-                    console.error("Error adding funds:", err);
-                    setError("Gagal menambah dana.");
-                }
-            };
-
-            const deleteGoal = async (id) => {
-                if (!db) return;
-                try {
-                    await deleteDoc(doc(db, `ledgers/${ledgerId}/savings/${id}`));
-                } catch (err) {
-                    console.error("Error deleting goal:", err);
-                    setError("Gagal menghapus target.");
-                }
-            };
-
-            return (
-                <>
-                    <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Tambah Target Tabungan Baru</h2>
-                        <form onSubmit={addGoal} className="space-y-3">
-                            <input type="text" value={newGoalName} onChange={(e) => setNewGoalName(e.target.value)} placeholder="Contoh: Dana liburan" className="w-full p-3 border rounded-lg" required />
-                            <input type="number" value={newTargetAmount} onChange={(e) => setNewTargetAmount(e.target.value)} placeholder="Target (misal: 5000000)" className="w-full p-3 border rounded-lg" required />
-                            <button type="submit" className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center">
-                                <PlusIcon /><span>Tambah Target</span>
-                            </button>
-                        </form>
-                        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Daftar Target Tabungan</h2>
-                        {isLoading ? <p>Memuat...</p> : goals.length === 0 ? <div className="text-center bg-white/70 backdrop-blur-sm rounded-xl p-8"><p className="text-gray-500">Belum ada target.</p></div> : (
-                            <div className="space-y-4">
-                                {goals.map(g => {
-                                    const progress = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
-                                    return (
-                                        <div key={g.id} className="bg-white/70 backdrop-blur-sm rounded-xl shadow-md p-4">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-semibold">{g.name}</p>
-                                                    <p className="text-sm text-green-600 font-medium">{formatCurrency(g.currentAmount)} / {formatCurrency(g.targetAmount)}</p>
-                                                </div>
-                                                <button onClick={() => deleteGoal(g.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-full"><TrashIcon /></button>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
-                                                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${progress > 100 ? 100 : progress}%` }}></div>
-                                            </div>
-                                            <div className="flex space-x-2 mt-3">
-                                                <input type="number" value={amountToAdd[g.id] || ''} onChange={(e) => setAmountToAdd(prev => ({ ...prev, [g.id]: e.target.value }))} placeholder="Jumlah" className="flex-grow p-2 border rounded-lg text-sm" />
-                                                <button onClick={() => addFunds(g.id)} className="bg-gray-200 font-semibold p-2 rounded-lg hover:bg-gray-300 text-sm">Tambah</button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </>
-            );
-        };
-
         // --- Komponen ProfileSetup ---
         const ProfileSetup = ({ onProfileSubmit, user }) => {
             const [name, setName] = React.useState(user?.name || '');
-            const [photo, setPhoto] = React.useState(null);
-            // FIX: Gunakan optional chaining untuk user?.photoURL
+            const [photo, setPhoto] = React.useState(null); // This will hold the base64 data URL
             const [photoPreview, setPhotoPreview] = React.useState(user?.photoURL || 'https://placehold.co/100x100/E2E8F0/4A5568?text=?');
             const fileInputRef = React.useRef();
 
@@ -643,7 +893,7 @@
                 if (file) {
                     const reader = new FileReader();
                     reader.onloadend = () => {
-                        setPhoto(reader.result);
+                        setPhoto(reader.result); // Set the base64 string
                         setPhotoPreview(reader.result);
                     };
                     reader.readAsDataURL(file);
@@ -652,19 +902,58 @@
 
             return (
                 <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Pengaturan Profil</h2>
-                        <p className="text-gray-600 mb-6">Personalisasi akun Anda.</p>
-                        <form onSubmit={(e) => { e.preventDefault(); onProfileSubmit(name, photo); }}>
-                            <div className="relative w-24 h-24 mx-auto mb-4">
-                                <img src={photoPreview} alt="Profile" className="w-24 h-24 rounded-full object-cover" />
-                                <button type="button" onClick={() => fileInputRef.current.click()} className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full hover:bg-blue-700">
+                    <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-lg text-center"> {/* Increased max-width */}
+                        <h2 className="text-2xl font-bold text-gray-800 mb-6">Pengaturan Profil</h2>
+
+                        {/* Instagram-like profile header */}
+                        <div className="flex flex-col items-center mb-8">
+                            <div className="relative w-32 h-32 mb-4"> {/* Larger profile picture */}
+                                <img src={photoPreview} alt="Profile" className="w-full h-full rounded-full object-cover border-4 border-blue-300 shadow-md" />
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current.click()}
+                                    className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full hover:bg-blue-700 transition duration-200"
+                                    aria-label="Ubah Foto Profil"
+                                >
                                     <CameraIcon />
                                 </button>
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
                             </div>
-                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Masukkan nama Anda" className="w-full p-3 border rounded-lg mb-4" required />
-                            <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">Simpan Profil</button>
+                            {/* FIX: Tampilkan nama pengguna, bukan email */}
+                            <p className="text-xl font-semibold text-gray-800">{user?.name || 'Nama Pengguna'}</p>
+                            <div className="flex justify-center space-x-8 mt-4 text-gray-600">
+                                <div className="text-center">
+                                    <p className="font-bold text-lg">0</p>
+                                    <p className="text-sm">Postingan</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="font-bold text-lg">0</p>
+                                    <p className="text-sm">Pengikut</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="font-bold text-lg">0</p>
+                                    <p className="text-sm">Mengikuti</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form onSubmit={(e) => { e.preventDefault(); onProfileSubmit(name, photo); }} className="space-y-4">
+                            <label htmlFor="profile-name" className="sr-only">Nama Anda</label>
+                            <input
+                                id="profile-name"
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Masukkan nama Anda"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                required
+                            />
+                            <button
+                                type="submit"
+                                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200"
+                            >
+                                Simpan Profil
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -680,9 +969,9 @@
 
             return (
                 <div className="flex items-center justify-center bg-white/50 backdrop-blur-sm p-2 rounded-lg">
-                    <button onClick={() => changeMonth(-1)} className="px-3 py-1 rounded-md hover:bg-gray-200">‹</button>
-                    <span className="font-semibold w-32 text-center">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</span>
-                    <button onClick={() => changeMonth(1)} className="px-3 py-1 rounded-md hover:bg-gray-200">›</button>
+                    <button onClick={() => changeMonth(-1)} className="px-3 py-1 rounded-md hover:bg-gray-200 transition duration-200">‹</button>
+                    <span className="font-semibold w-32 text-center text-gray-800">{selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</span>
+                    <button onClick={() => changeMonth(1)} className="px-3 py-1 rounded-md hover:bg-gray-200 transition duration-200">›</button>
                 </div>
             );
         };
@@ -702,64 +991,29 @@
             const [authError, setAuthError] = React.useState(null);
             const [isAuthReady, setIsAuthReady] = React.useState(false); // State baru untuk melacak kesiapan otentikasi
 
-            // Effect untuk otentikasi Firebase
-            React.useEffect(() => {
-                if (!authInstance) return;
-
-                const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
-                    if (currentUser) {
-                        setUser({ uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName, photoURL: currentUser.photoURL });
-                        setIsAuthReady(true); // Otentikasi siap
-                    } else {
-                        // Jika tidak ada user yang login, kita tidak lagi otomatis sign-in anonim di sini
-                        // Pengguna akan diarahkan ke AuthScreen
-                        setUser(null);
-                        setIsAuthReady(true); // Tetap set ke true agar AuthScreen bisa ditampilkan
-                    }
-                });
-                return () => unsubscribe();
-            }, [authInstance]);
-
-            // Effect untuk memuat data ledger dan profil pengguna
-            React.useEffect(() => {
-                // Hanya jalankan jika user sudah terotentikasi dan db ada
-                if (!user?.uid || !ledgerId || !db) {
-                    setLedgerDoc(null); // Reset ledgerDoc jika tidak ada user/ledgerId
-                    return;
-                }
-
-                const ledgerDocRef = doc(db, `ledgers/${ledgerId}`);
-                const unsub = onSnapshot(ledgerDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        setLedgerDoc(data);
-                        const participants = data.participants || {};
-                        // Perbarui user state dengan data profil dari ledger
-                        if (participants[user.uid]) {
-                            setUser(prev => ({ ...prev, ...participants[user.uid] }));
-                            setShowProfileSetup(false);
+            // Fungsi untuk meminta izin notifikasi browser
+            const requestNotificationPermission = () => {
+                if (!("Notification" in window)) {
+                    alert("Browser ini tidak mendukung notifikasi desktop.");
+                } else if (Notification.permission === "default") {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === "granted") {
+                            console.log("Izin notifikasi diberikan.");
                         } else {
-                            // Jika user belum ada di participants ledger, tampilkan setup profil
-                            setShowProfileSetup(true);
+                            alert("Izin notifikasi ditolak. Anda tidak akan menerima pengingat.");
                         }
-                    } else {
-                        // Jika ledger tidak ada, mungkin ID salah atau baru dibuat, minta pengguna membuat profil
-                        setLedgerDoc(null);
-                        setShowProfileSetup(true);
-                    }
-                }, (error) => {
-                    console.error("Error fetching ledger document:", error);
-                    setLedgerDoc(null);
-                    // Handle error, maybe show a message to the user
-                });
-                return unsub;
-            }, [user?.uid, ledgerId, db]);
+                    });
+                }
+            };
 
             // Fungsi untuk registrasi
             const handleRegister = async (email, password) => {
                 try {
+                    // Set persistence before creating user
+                    await setPersistence(authInstance, browserLocalPersistence);
                     await createUserWithEmailAndPassword(authInstance, email, password);
                     setAuthError(null); // Reset error
+                    requestNotificationPermission(); // Request permission after successful registration
                 } catch (error) {
                     console.error("Registration error:", error);
                     setAuthError(error);
@@ -770,8 +1024,11 @@
             // Fungsi untuk login
             const handleLogin = async (email, password) => {
                 try {
+                    // Set persistence before signing in
+                    await setPersistence(authInstance, browserLocalPersistence);
                     await signInWithEmailAndPassword(authInstance, email, password);
                     setAuthError(null); // Reset error
+                    requestNotificationPermission(); // Request permission after successful login
                 } catch (error) {
                     console.error("Login error:", error);
                     setAuthError(error);
@@ -802,24 +1059,34 @@
                 try {
                     const currentParticipantData = ledgerDoc?.participants?.[user.uid] || {};
 
+                    // Pastikan semua properti disetel ke null jika tidak ada nilai, bukan undefined
                     const newParticipantData = {
                         name: name,
+                        // Pastikan photoURL dari input atau currentParticipantData adalah null jika undefined
                         photoURL: photoURL || currentParticipantData.photoURL || null,
-                        email: user.email || null // Simpan email pengguna
+                        // Pastikan email dari user state adalah null jika undefined
+                        email: user.email || null
                     };
 
+                    // Hapus properti undefined secara rekursif sebelum menyimpan ke Firestore
+                    const sanitizedParticipantData = removeUndefined(newParticipantData);
+
+                    // Debugging: Log data sebelum disimpan
+                    console.log("Data yang akan disimpan ke Firestore:", sanitizedParticipantData);
+
                     await setDoc(ledgerDocRef, {
-                        participants: { [user.uid]: newParticipantData }
+                        participants: { [user.uid]: sanitizedParticipantData }
                     }, { merge: true });
 
                     // Perbarui user state di App dengan nama dan photoURL yang baru
-                    setUser(prev => ({ ...prev, ...newParticipantData }));
+                    setUser(prev => ({ ...prev, ...sanitizedParticipantData }));
                     setShowProfileSetup(false);
                 } catch (error) {
                     console.error("Error setting profile:", error);
                 }
             };
 
+            // FIX: Pindahkan definisi fungsi-fungsi ini ke sini
             const createNewLedger = () => {
                 const newId = `BERSAMA-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
                 setLedgerId(newId);
@@ -831,6 +1098,87 @@
                     localStorage.setItem('ledgerId', tempLedgerId);
                 }
             };
+            const copyLedgerId = () => {
+                const d = document.createElement('textarea');
+                d.value = ledgerId;
+                document.body.appendChild(d);
+                d.select();
+                document.execCommand('copy');
+                document.body.removeChild(d);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            };
+
+
+            // Effect untuk otentikasi Firebase
+            React.useEffect(() => {
+                if (!authInstance) return;
+
+                const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
+                    if (currentUser) {
+                        // Pastikan properti disetel ke null jika undefined dari currentUser
+                        setUser({
+                            uid: currentUser.uid,
+                            email: currentUser.email || null,
+                            name: currentUser.displayName || null, // displayName bisa undefined
+                            photoURL: currentUser.photoURL || null // photoURL bisa undefined
+                        });
+                        setIsAuthReady(true); // Otentikasi siap
+                    } else {
+                        // Jika tidak ada user yang login, kita tidak lagi otomatis sign-in anonim di sini
+                        // Pengguna akan diarahkan ke AuthScreen
+                        setUser(null);
+                        setIsAuthReady(true); // Tetap set ke true agar AuthScreen bisa ditampilkan
+                    }
+                });
+                return () => unsubscribe();
+            }, [authInstance]);
+
+            // Effect untuk memuat data ledger dan profil pengguna
+            React.useEffect(() => {
+                // Hanya jalankan jika user sudah terotentikasi dan db ada
+                if (!user?.uid || !ledgerId || !db) {
+                    setLedgerDoc(null); // Reset ledgerDoc jika tidak ada user/ledgerId
+                    return;
+                }
+
+                const ledgerDocRef = doc(db, `ledgers/${ledgerId}`);
+                const unsub = onSnapshot(ledgerDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        setLedgerDoc(data);
+                        const participants = data.participants || {};
+                        // Perbarui user state dengan data profil dari ledger
+                        if (participants[user.uid]) {
+                            // Pastikan properti disetel ke null jika undefined dari Firestore
+                            setUser(prev => ({
+                                ...prev,
+                                name: participants[user.uid].name || null,
+                                photoURL: participants[user.uid].photoURL || null
+                            }));
+                            setShowProfileSetup(false);
+                        } else {
+                            // Jika user belum ada di participants ledger, tampilkan setup profil
+                            // Pastikan properti name dan photoURL di user state adalah null
+                            setUser(prev => ({
+                                ...prev,
+                                name: null,
+                                photoURL: null
+                            }));
+                            setShowProfileSetup(true);
+                        }
+                    } else {
+                        // Jika ledger tidak ada, mungkin ID salah atau baru dibuat, minta pengguna membuat profil
+                        setLedgerDoc(null);
+                        setShowProfileSetup(true);
+                    }
+                }, (error) => {
+                    console.error("Error fetching ledger document:", error);
+                    setLedgerDoc(null);
+                    // Handle error, maybe show a message to the user
+                });
+                return unsub;
+            }, [user?.uid, ledgerId, db]);
 
             // Tampilan berdasarkan status aplikasi
             if (!isConfigValid) {
@@ -863,7 +1211,11 @@
 
             // Jika belum ada user yang login, tampilkan AuthScreen
             if (!user) {
-                return <AuthScreen onLogin={handleLogin} onRegister={handleRegister} authError={authError} />;
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
+                        <AuthScreen onLogin={handleLogin} onRegister={handleRegister} authError={authError} />
+                    </div>
+                );
             }
 
             // Jika user sudah login tapi belum memilih/membuat ledger
@@ -874,10 +1226,10 @@
                             <h1 className="text-2xl font-bold mb-2">Dompet & Target Bersama</h1>
                             <p className="text-gray-600 mb-8">Atur keuangan, tabungan, dan kebiasaan bersama pasangan.</p>
                             <div className="space-y-4">
-                                <button onClick={createNewLedger} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">Buat Ruang Baru</button>
+                                <button onClick={createNewLedger} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition duration-200">Buat Ruang Baru</button>
                                 <div className="flex items-center space-x-2">
                                     <input type="text" value={tempLedgerId} onChange={(e) => setTempLedgerId(e.target.value)} placeholder="Masukkan Kode Ruang" className="flex-grow p-3 border rounded-lg" />
-                                    <button onClick={joinLedger} disabled={!tempLedgerId} className="bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700 disabled:bg-gray-300">Gabung</button>
+                                    <button onClick={joinLedger} disabled={!tempLedgerId} className="bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700 disabled:bg-gray-300 transition duration-200">Gabung</button>
                                 </div>
                             </div>
                             <button onClick={handleLogout} className="mt-8 text-red-500 hover:underline text-sm">Logout</button>
@@ -888,7 +1240,7 @@
 
             // Jika user sudah login dan ledgerId sudah ada, tampilkan aplikasi utama
             return (
-                <div className="min-h-screen font-sans bg-gradient-to-br from-blue-50 to-indigo-100">
+                <div className="min-h-screen font-sans bg-gradient-to-br from-blue-50 to-indigo-100 pb-16"> {/* Add padding-bottom for fixed footer */}
                     {showProfileSetup && <ProfileSetup onProfileSubmit={handleProfileSubmit} user={user} />}
                     <header className="bg-white/70 backdrop-blur-sm shadow-md sticky top-0 z-20">
                         <div className="max-w-4xl mx-auto p-4">
@@ -908,21 +1260,47 @@
                                 </button>
                             </div>
                         </div>
-                        <div className="border-b border-gray-200">
-                            <nav className="max-w-4xl mx-auto -mb-px flex justify-around">
-                                <button onClick={() => setActiveTab('dashboard')} className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'dashboard' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:border-gray-300'}`}><HomeIcon /> Dashboard</button>
-                                <button onClick={() => setActiveTab('finance')} className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'finance' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:border-gray-300'}`}><MoneyIcon /> Keuangan</button>
-                                <button onClick={() => setActiveTab('savings')} className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'savings' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:border-gray-300'}`}><PiggyBankIcon /> Tabungan</button>
-                                <button onClick={() => setActiveTab('habits')} className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'habits' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:border-gray-300'}`}><TargetIcon /> Kebiasaan</button>
-                            </nav>
-                        </div>
+                        {/* Navigasi atas dihapus karena dipindahkan ke footer */}
                     </header>
                     <main className="max-w-4xl mx-auto p-4">
                         {activeTab === 'dashboard' && <Dashboard user={user} ledgerId={ledgerId} setActiveTab={setActiveTab} ledgerDoc={ledgerDoc} selectedDate={selectedDate} />}
                         {activeTab === 'finance' && <FinanceTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
                         {activeTab === 'savings' && <SavingsTracker user={user} ledgerId={ledgerId} />}
-                        {activeTab === 'habits' && <HabitTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
+                        {activeTab === 'habits' && <HabitTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} />}
+                        {activeTab === 'calendar' && <CoupleCalendar user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} />}
+                        {activeTab === 'diary' && <Diary user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
+                        {activeTab === 'wishlist' && <TravelWishlist user={user} ledgerId={ledgerId} />}
                     </main>
+
+                    {/* Footer Navigasi seperti Instagram */}
+                    <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
+                        <nav className="flex justify-around items-center h-16 max-w-xl mx-auto">
+                            <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'dashboard' ? 'text-indigo-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <HomeIcon className="h-6 w-6 mb-1" />
+                                <span>Beranda</span>
+                            </button>
+                            <button onClick={() => setActiveTab('finance')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'finance' ? 'text-blue-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <WalletIcon className="h-6 w-6 mb-1" />
+                                <span>Keuangan</span>
+                            </button>
+                            <button onClick={() => setActiveTab('savings')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'savings' ? 'text-green-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <GiftIcon className="h-6 w-6 mb-1" />
+                                <span>Tabungan</span>
+                            </button>
+                            <button onClick={() => setActiveTab('habits')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'habits' ? 'text-purple-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <CalendarIcon className="h-6 w-6 mb-1" />
+                                <span>Kebiasaan</span>
+                            </button>
+                            <button onClick={() => setActiveTab('wishlist')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'wishlist' ? 'text-red-500 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <MapPinIcon className="h-6 w-6 mb-1" />
+                                <span>Wishlist</span>
+                            </button>
+                            <button onClick={() => setActiveTab('diary')} className={`flex flex-col items-center justify-center p-2 text-xs font-medium transition duration-200 ${activeTab === 'diary' ? 'text-yellow-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <BookOpenIcon className="h-6 w-6 mb-1" />
+                                <span>Diary</span>
+                            </button>
+                        </nav>
+                    </footer>
                 </div>
             );
         }
