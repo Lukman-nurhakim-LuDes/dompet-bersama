@@ -345,14 +345,47 @@
             }, [user, ledgerId, selectedDate, setFirestoreError]); // Depend on selectedDate to re-fetch for new year if month changes year
 
             // Calculate current month's financials
-            const { totalIncome, totalExpense, balance } = React.useMemo(() => {
+            const { totalIncome, totalExpense, balance, myIncome, myExpense, myBalance, partnerIncome, partnerExpense, partnerBalance } = React.useMemo(() => {
                 const currentMonthYear = getMonthYear(selectedDate);
                 const monthlyTransactions = transactions.filter(t => t.monthYear === currentMonthYear);
 
-                const income = monthlyTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + Number(t.amount), 0);
-                const expense = monthlyTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + Number(t.amount), 0);
-                return { totalIncome: income, totalExpense: expense, balance: income - expense };
-            }, [transactions, selectedDate]);
+                let totalIncome = 0;
+                let totalExpense = 0;
+                let myIncome = 0;
+                let myExpense = 0;
+                let partnerIncome = 0;
+                let partnerExpense = 0;
+
+                monthlyTransactions.forEach(t => {
+                    if (t.type === 'pemasukan') {
+                        totalIncome += Number(t.amount);
+                        if (t.userId === user.uid) {
+                            myIncome += Number(t.amount);
+                        } else {
+                            partnerIncome += Number(t.amount);
+                        }
+                    } else if (t.type === 'pengeluaran') {
+                        totalExpense += Number(t.amount);
+                        if (t.userId === user.uid) {
+                            myExpense += Number(t.amount);
+                        } else {
+                            partnerExpense += Number(t.amount);
+                        }
+                    }
+                });
+
+                return {
+                    totalIncome,
+                    totalExpense,
+                    balance: totalIncome - totalExpense,
+                    myIncome,
+                    myExpense,
+                    myBalance: myIncome - myExpense,
+                    partnerIncome,
+                    partnerExpense,
+                    partnerBalance: partnerIncome - partnerExpense
+                };
+            }, [transactions, selectedDate, user]);
 
             const { totalSaved, activeGoals } = React.useMemo(() => {
                 const saved = goals.reduce((sum, g) => sum + Number(g.currentAmount), 0);
@@ -563,6 +596,27 @@
                             </button>
                         </div>
 
+                        {/* Ringkasan Keuangan Individu */}
+                        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100">
+                            <h3 className="font-bold text-xl text-gray-800 mb-4">Ringkasan Keuangan Individu Bulan Ini</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Ringkasan Saya */}
+                                <div className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-sm border border-indigo-200">
+                                    <p className="text-sm text-indigo-700 font-medium">Ringkasan Saya</p>
+                                    <p className="text-lg font-bold text-indigo-800 mt-1">Pemasukan: {formatCurrency(myIncome)}</p>
+                                    <p className="text-lg font-bold text-indigo-800">Pengeluaran: {formatCurrency(myExpense)}</p>
+                                    <p className={`text-xl font-bold ${myBalance >= 0 ? 'text-indigo-800' : 'text-red-800'}`}>Sisa Saldo: {formatCurrency(myBalance)}</p>
+                                </div>
+                                {/* Ringkasan Pasangan */}
+                                <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-sm border border-purple-200">
+                                    <p className="text-sm text-purple-700 font-medium">Ringkasan {partner?.name || 'Pasangan'}</p>
+                                    <p className="text-lg font-bold text-purple-800 mt-1">Pemasukan: {formatCurrency(partnerIncome)}</p>
+                                    <p className="text-lg font-bold text-purple-800">Pengeluaran: {formatCurrency(partnerExpense)}</p>
+                                    <p className={`text-xl font-bold ${partnerBalance >= 0 ? 'text-purple-800' : 'text-red-800'}`}>Sisa Saldo: {formatCurrency(partnerBalance)}</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Distribusi Pengeluaran (Donut Chart) */}
                             <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100">
@@ -629,6 +683,31 @@
                                     <p className="text-center text-gray-400 pt-16">Belum ada data tren keuangan tahun ini.</p>
                                 )}
                             </div>
+                        </div>
+
+                        {/* Tren Harian Bulan Ini (Daily Chart) */}
+                        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100">
+                            <h3 className="font-bold text-xl text-gray-800 mb-4">Tren Harian Bulan Ini</h3>
+                            {LineChart && dailyFinancialTrendData.length > 0 ? (
+                                <div className="h-72">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart
+                                            data={dailyFinancialTrendData}
+                                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                                            <XAxis dataKey="name" stroke="#6b7280" />
+                                            <YAxis stroke="#6b7280" tickFormatter={(value) => formatCurrency(value)} />
+                                            <Tooltip formatter={(value) => formatCurrency(value)} />
+                                            <Legend />
+                                            <Line type="monotone" dataKey="pemasukan" stroke="#10B981" activeDot={{ r: 8 }} name="Pemasukan Harian" />
+                                            <Line type="monotone" dataKey="pengeluaran" stroke="#EF4444" activeDot={{ r: 8 }} name="Pengeluaran Harian" />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <p className="text-center text-gray-400 pt-16">Belum ada data tren harian bulan ini.</p>
+                            )}
                         </div>
 
                         {/* Progres Tabungan (Tetap) */}
@@ -773,6 +852,17 @@
                             await updateDoc(doc(db, `ledgers/${ledgerId}/budgets/${existingBudget.id}`), {
                                 spentAmount: increment(Number(amount)) // Add to spentAmount
                             });
+                        } else {
+                            // If budget category doesn't exist, create it as an expense
+                            await addDoc(collection(db, `ledgers/${ledgerId}/budgets`), {
+                                name: category,
+                                budgetAmount: 0, // No planned budget, just track spent
+                                spentAmount: Number(amount),
+                                monthYear: monthYear,
+                                userId: user.uid, // User who added the expense
+                                userName: user.name || 'Anonim',
+                                createdAt: serverTimestamp()
+                            });
                         }
                     }
 
@@ -907,6 +997,7 @@
                                     addDoc(collection(db, `ledgers/${ledgerId}/budgets`), {
                                         name: categoryName,
                                         budgetAmount: Number(budgetAmount),
+                                        spentAmount: 0, // Initialize spent amount for new budget
                                         monthYear: monthYear,
                                         userId: user.uid,
                                         userName: user.name || 'Anonim',
@@ -1063,7 +1154,7 @@
                 if (isDone) {
                     delete newCompletedBy[dateString]; // Remove entry for this day
                 } else {
-                    newCompletedBy[dateString] = user.name || 'Anonim'; // Add user's name for this day
+                    newCompletedBy[dateString] = user.name ? user.name.substring(0, 1).toUpperCase() : '?'; // Store first letter of user's name
                 }
 
                 try {
@@ -1103,7 +1194,10 @@
                             groups[h.name].completions.push(comp);
                         }
                     });
-                    Object.assign(groups[h.name].completedBy, h.completedBy);
+                    // Merge completedBy, prioritize current user's completion if available
+                    for (const dateString in h.completedBy) {
+                        groups[h.name].completedBy[dateString] = h.completedBy[dateString];
+                    }
                 });
                 // Ensure unique users
                 for (const name in groups) {
@@ -1235,7 +1329,7 @@
                                                                 />
                                                                 {completedByThisDay && (
                                                                     <span className="text-xs text-gray-500 mt-0.5">
-                                                                        {completedByThisDay.substring(0, 1).toUpperCase()} {/* Display first letter of name */}
+                                                                        {completedByThisDay} {/* Display first letter of name */}
                                                                     </span>
                                                                 )}
                                                             </div>
