@@ -53,14 +53,11 @@
 
     <script type="text/babel" data-type="module">
         // --- Memuat Firebase SDK ---
-        // Menggunakan versi Firebase SDK terbaru yang direkomendasikan (v11.6.1)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, serverTimestamp, updateDoc, arrayUnion, arrayRemove, increment, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // Menambahkan import untuk email/password auth dan signOut, serta setPersistence
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- Konfigurasi Firebase ---
-        // Pastikan apiKey ini valid dan tidak dimulai dengan "GANTI_DENGAN"
         const firebaseConfig = {
             apiKey: "AIzaSyB91qA6AGjNBAEyIQSlHvN482esZKlP_Ok",
             authDomain: "dompet-pasangan-kita.firebaseapp.com",
@@ -849,7 +846,7 @@
                     return;
                 }
                 try {
-                    await addDoc(collection(db, `ledgers/${ledgerId}/savings`), {
+                    await addDoc(collection(db, collectionPath), {
                         name: newGoalName,
                         targetAmount: Number(newTargetAmount),
                         currentAmount: 0,
@@ -1069,7 +1066,7 @@
                     <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-lg text-center"> {/* Increased max-width */}
                         <h2 className="text-2xl font-bold text-gray-800 mb-6">Pengaturan Profil</h2>
 
-                        {/* Instagram-like profile header */}
+                        {/* Simplified profile header */}
                         <div className="flex flex-col items-center mb-8">
                             <div className="relative w-32 h-32 mb-4"> {/* Larger profile picture */}
                                 <img src={photoPreview} alt="Profile" className="w-full h-full rounded-full object-cover border-4 border-blue-300 shadow-md" />
@@ -1083,22 +1080,8 @@
                                 </button>
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
                             </div>
-                            {/* FIX: Tampilkan nama pengguna, bukan email */}
+                            {/* Tampilkan nama pengguna */}
                             <p className="text-xl font-semibold text-gray-800">{user?.name || 'Nama Pengguna'}</p>
-                            <div className="flex justify-center space-x-8 mt-4 text-gray-600">
-                                <div className="text-center">
-                                    <p className="font-bold text-lg">0</p>
-                                    <p className="text-sm">Postingan</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="font-bold text-lg">0</p>
-                                    <p className="text-sm">Pengikut</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="font-bold text-lg">0</p>
-                                    <p className="text-sm">Mengikuti</p>
-                                </div>
-                            </div>
                         </div>
 
                         <form onSubmit={(e) => { e.preventDefault(); onProfileSubmit(name, photo); }} className="space-y-4">
@@ -1221,18 +1204,18 @@
                 }
                 const ledgerDocRef = doc(db, `ledgers/${ledgerId}`);
                 try {
+                    // Ambil data partisipan saat ini, pastikan itu objek
                     const currentParticipantData = ledgerDoc?.participants?.[user.uid] || {};
 
-                    // Pastikan semua properti disetel ke null jika tidak ada nilai, bukan undefined
+                    // Bangun objek newParticipantData dengan memastikan tidak ada undefined
                     const newParticipantData = {
-                        name: name,
-                        // Pastikan photoURL dari input atau currentParticipantData adalah null jika undefined
-                        photoURL: photoURL || currentParticipantData.photoURL || null,
-                        // Pastikan email dari user state adalah null jika undefined
-                        email: user.email || null
+                        name: name || null, // Pastikan nama selalu string atau null
+                        photoURL: photoURL || currentParticipantData.photoURL || null, // Pastikan photoURL selalu string atau null
+                        email: user.email || null // Pastikan email selalu string atau null
                     };
 
                     // Hapus properti undefined secara rekursif sebelum menyimpan ke Firestore
+                    // Ini adalah lapisan pengaman terakhir
                     const sanitizedParticipantData = removeUndefined(newParticipantData);
 
                     // Debugging: Log data sebelum disimpan
