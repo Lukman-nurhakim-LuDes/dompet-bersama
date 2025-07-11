@@ -367,9 +367,11 @@
                     const monthYearKey = getMonthYear(monthDate);
                     monthlyData[monthYearKey] = {
                         name: getMonthName(i),
-                        pemasukan: 0,
-                        pengeluaran: 0,
-                        saldo: 0
+                        myPemasukan: 0,
+                        myPengeluaran: 0,
+                        partnerPemasukan: 0,
+                        partnerPengeluaran: 0,
+                        saldo: 0 // This will be the cumulative balance for the ledger
                     };
                 }
 
@@ -379,10 +381,18 @@
                         const date = t.createdAt.toDate();
                         const monthYearKey = getMonthYear(date);
                         if (monthlyData[monthYearKey]) {
-                            if (t.type === 'pemasukan') {
-                                monthlyData[monthYearKey].pemasukan += Number(t.amount);
-                            } else if (t.type === 'pengeluaran') {
-                                monthlyData[monthYearKey].pengeluaran += Number(t.amount);
+                            if (t.userId === user.uid) { // My transaction
+                                if (t.type === 'pemasukan') {
+                                    monthlyData[monthYearKey].myPemasukan += Number(t.amount);
+                                } else if (t.type === 'pengeluaran') {
+                                    monthlyData[monthYearKey].myPengeluaran += Number(t.amount);
+                                }
+                            } else { // Assume it's partner's transaction if not mine
+                                if (t.type === 'pemasukan') {
+                                    monthlyData[monthYearKey].partnerPemasukan += Number(t.amount);
+                                } else if (t.type === 'pengeluaran') {
+                                    monthlyData[monthYearKey].partnerPengeluaran += Number(t.amount);
+                                }
                             }
                         }
                     }
@@ -391,10 +401,10 @@
                 // Calculate cumulative balance for the trend
                 let cumulativeBalance = 0;
                 return Object.values(monthlyData).map(month => {
-                    cumulativeBalance += (month.pemasukan - month.pengeluaran);
+                    cumulativeBalance += (month.myPemasukan + month.partnerPemasukan) - (month.myPengeluaran + month.partnerPengeluaran);
                     return { ...month, saldo: cumulativeBalance };
                 });
-            }, [transactions, selectedDate]);
+            }, [transactions, selectedDate, user]);
 
 
             const partner = React.useMemo(() => {
@@ -554,9 +564,15 @@
                                                 <YAxis stroke="#6b7280" tickFormatter={(value) => formatCurrency(value)} />
                                                 <Tooltip formatter={(value) => formatCurrency(value)} />
                                                 <Legend />
-                                                <Line type="monotone" dataKey="pemasukan" stroke="#10B981" activeDot={{ r: 8 }} name="Pemasukan" />
-                                                <Line type="monotone" dataKey="pengeluaran" stroke="#EF4444" activeDot={{ r: 8 }} name="Pengeluaran" />
-                                                <Line type="monotone" dataKey="saldo" stroke="#3B82F6" activeDot={{ r: 8 }} name="Saldo Akhir" />
+                                                <Line type="monotone" dataKey="myPemasukan" stroke="#10B981" activeDot={{ r: 8 }} name="Pemasukan Saya" />
+                                                <Line type="monotone" dataKey="myPengeluaran" stroke="#EF4444" activeDot={{ r: 8 }} name="Pengeluaran Saya" />
+                                                {partner && (
+                                                    <>
+                                                        <Line type="monotone" dataKey="partnerPemasukan" stroke="#2563EB" activeDot={{ r: 8 }} name={`Pemasukan ${partner.name || 'Pasangan'}`} />
+                                                        <Line type="monotone" dataKey="partnerPengeluaran" stroke="#DC2626" activeDot={{ r: 8 }} name={`Pengeluaran ${partner.name || 'Pasangan'}`} />
+                                                    </>
+                                                )}
+                                                <Line type="monotone" dataKey="saldo" stroke="#3B82F6" activeDot={{ r: 8 }} name="Saldo Bersama" />
                                             </LineChart>
                                         </ResponsiveContainer>
                                     </div>
@@ -1884,7 +1900,7 @@
                     }
                 });
                 return unsub;
-            }, [user?.uid, ledgerId, db]);
+            }, [user?.uid, ledgerId, db, setFirestoreError]);
 
             // Display based on application status
             if (!isConfigValid) {
