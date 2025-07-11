@@ -118,6 +118,8 @@
         const BookOpenIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.206 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.794 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.794 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.206 18 16.5 18s-3.332.477-4.5 1.253" /></svg>;
         const MapPinIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243m0 0A8 8 0 1116.657 7.343a8 8 0 01-9.9 9.9z" /></svg>;
         const BellIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
+        // Ikon baru untuk Kebiasaan: Check Square
+        const CheckSquareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 
 
         // Helper function to recursively remove undefined values from an object
@@ -308,6 +310,7 @@
                     setGoals(snapshot.docs.map(doc => doc.data()));
                 }, (error) => {
                     console.error("Error fetching goals:", error);
+                    setIsLoading(false);
                 });
 
                 return () => {
@@ -634,7 +637,7 @@
 
             const addTransaction = async (e) => {
                 e.preventDefault();
-                // FIX: Pastikan user dan user.name ada sebelum menambah transaksi
+                // Ensure user and user.name exist before adding transaction
                 if (!description || !amount || !user || !user.uid || !ledgerId || !db) {
                     setError("Deskripsi, jumlah, atau informasi pengguna tidak lengkap.");
                     return;
@@ -645,7 +648,7 @@
                         amount: Number(amount),
                         type,
                         userId: user.uid,
-                        userName: user.name || 'Anonim', // FIX: Fallback jika user.name null
+                        userName: user.name || 'Anonim', // Fallback if user.name is null
                         createdAt: serverTimestamp(),
                         monthYear: monthYear
                     });
@@ -729,7 +732,9 @@
                                         <div>
                                             <p className="font-semibold text-gray-800">{t.description}</p>
                                             {/* Safely access toDate() */}
-                                            <p className="text-sm text-gray-500">{t.createdAt && typeof t.createdAt.toDate === 'function' ? new Date(t.createdAt.toDate()).toLocaleDateString('id-ID') : 'Baru'}</p>
+                                            <p className="text-sm text-gray-500">
+                                                {t.userName || 'Anonim'} pada {t.createdAt && typeof t.createdAt.toDate === 'function' ? new Date(t.createdAt.toDate()).toLocaleDateString('id-ID') : 'Baru'}
+                                            </p>
                                         </div>
                                         <div className="flex items-center space-x-4">
                                             <p className={`font-bold ${t.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(t.amount)}</p>
@@ -815,7 +820,7 @@
 
             const addHabit = async (e) => {
                 e.preventDefault();
-                // FIX: Pastikan user dan user.uid ada sebelum menambah kebiasaan
+                // Ensure user and user.uid exist before adding habit
                 if (!newHabitName || !user || !user.uid || !ledgerId || !db) {
                     setError("Nama kebiasaan atau informasi pengguna tidak lengkap.");
                     return;
@@ -825,7 +830,8 @@
                         name: newHabitName,
                         completions: [],
                         createdAt: serverTimestamp(),
-                        userId: user.uid
+                        userId: user.uid,
+                        userName: user.name || 'Anonim' // Store userName with habit
                     };
                     if (newHabitTime) {
                         habitData.reminderTime = newHabitTime;
@@ -876,7 +882,10 @@
                                         {habits.map(h => (
                                             <tr key={h.id} className="border-b last:border-b-0">
                                                 <td className="p-2 text-left font-semibold sticky left-0 bg-white/90 backdrop-blur-sm flex items-center justify-between z-10">
-                                                    <span className="truncate pr-2 text-gray-800">{h.name} {h.reminderTime ? `(${h.reminderTime})` : ''}</span>
+                                                    <div className="flex flex-col items-start">
+                                                        <span className="truncate pr-2 text-gray-800">{h.name} {h.reminderTime ? `(${h.reminderTime})` : ''}</span>
+                                                        <span className="text-xs text-gray-500">Oleh: {h.userName || 'Anonim'}</span>
+                                                    </div>
                                                     <button onClick={() => deleteHabit(h.id)} className="text-gray-400 hover:text-red-500 transition duration-200"><TrashIcon /></button>
                                                 </td>
                                                 {daysArray.map(day => {
@@ -930,7 +939,7 @@
 
             const addGoal = async (e) => {
                 e.preventDefault();
-                // FIX: Pastikan user dan user.uid ada sebelum menambah target
+                // Ensure user and user.uid exist before adding goal
                 if (!newGoalName || !newTargetAmount || !user || !user.uid || !ledgerId || !db) {
                     setError("Nama target, jumlah target, atau informasi pengguna tidak lengkap.");
                     return;
@@ -941,7 +950,8 @@
                         targetAmount: Number(newTargetAmount),
                         currentAmount: 0,
                         createdAt: serverTimestamp(),
-                        userId: user.uid
+                        userId: user.uid,
+                        userName: user.name || 'Anonim' // Store userName with goal
                     });
                     setNewGoalName('');
                     setNewTargetAmount('');
@@ -1034,6 +1044,7 @@
                                                 <div>
                                                     <p className="font-semibold text-gray-800">{g.name}</p>
                                                     <p className="text-sm text-green-600 font-medium">{formatCurrency(g.currentAmount)} / {formatCurrency(g.targetAmount)}</p>
+                                                    <p className="text-xs text-gray-500">Oleh: {g.userName || 'Anonim'}</p>
                                                 </div>
                                                 <button onClick={() => deleteGoal(g.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-full transition duration-200"><TrashIcon /></button>
                                             </div>
@@ -1100,6 +1111,7 @@
                         destination: newDestination,
                         description: newDescription,
                         photoBase64: newPhoto || null, // Store Base64 or null
+                        visited: false, // New field: default to false
                         userId: user.uid,
                         userName: user.name || 'Anonim',
                         createdAt: serverTimestamp()
@@ -1107,6 +1119,18 @@
                     setNewDestination(''); setNewDescription(''); setNewPhoto(null); setPhotoPreview(null); setError('');
                     if (fileInputRef.current) fileInputRef.current.value = ''; // Clear file input
                 } catch (err) { console.error("Error adding wishlist item:", err); setError("Gagal menambah item wishlist."); }
+            };
+
+            const toggleVisitedStatus = async (item) => {
+                if (!db) return;
+                try {
+                    await updateDoc(doc(db, `ledgers/${ledgerId}/travelWishlist/${item.id}`), {
+                        visited: !item.visited
+                    });
+                } catch (err) {
+                    console.error("Error toggling visited status:", err);
+                    setError("Gagal memperbarui status kunjungan.");
+                }
             };
 
             const deleteWishlistItem = async (id) => {
@@ -1145,12 +1169,21 @@
                                         )}
                                         <div className="p-4">
                                             <div className="flex justify-between items-start mb-2">
-                                                <h3 className="font-bold text-lg text-gray-800">{item.destination}</h3>
-                                                <button onClick={() => deleteWishlistItem(item.id)} className="text-gray-400 hover:text-red-500 transition duration-200">
-                                                    <TrashIcon />
-                                                </button>
+                                                <h3 className={`font-bold text-lg text-gray-800 ${item.visited ? 'line-through text-gray-500' : ''}`}>{item.destination}</h3>
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={item.visited || false}
+                                                        onChange={() => toggleVisitedStatus(item)}
+                                                        className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                                                        title={item.visited ? "Sudah Dikunjungi" : "Tandai Sudah Dikunjungi"}
+                                                    />
+                                                    <button onClick={() => deleteWishlistItem(item.id)} className="text-gray-400 hover:text-red-500 transition duration-200">
+                                                        <TrashIcon />
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <p className="text-sm text-gray-700 mb-2">{item.description}</p>
+                                            <p className={`text-sm text-gray-700 mb-2 ${item.visited ? 'line-through text-gray-500' : ''}`}>{item.description}</p>
                                             <p className="text-xs text-gray-500">Ditambahkan oleh {item.userName || 'Anonim'} pada {item.createdAt && typeof item.createdAt.toDate === 'function' ? new Date(item.createdAt.toDate()).toLocaleDateString('id-ID') : 'Baru'}</p>
                                         </div>
                                     </div>
@@ -1182,7 +1215,7 @@
                 const q = query(collection(db, collectionPath), where('monthYear', '==', monthYear));
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     const entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => {
-                         // Safely access toDate()
+                            // Safely access toDate()
                         const dateA = a.createdAt && typeof a.createdAt.toDate === 'function' ? a.createdAt.toDate() : new Date(0); // Default to epoch if invalid
                         const dateB = b.createdAt && typeof b.createdAt.toDate === 'function' ? b.createdAt.toDate() : new Date(0); // Default to epoch if invalid
                         return dateB - dateA;
@@ -1277,25 +1310,174 @@
             );
         };
 
-        // --- Komponen CoupleCalendar (Placeholder) ---
-        // Anda dapat mengisi fungsionalitas kalender di sini.
-        const CoupleCalendar = ({ user, ledgerId, selectedDate, requestNotificationPermission }) => {
-            // Implementasi kalender di sini
+        // --- Komponen EventsCalendar (CoupleCalendar yang Diperbarui) ---
+        const EventsCalendar = ({ user, ledgerId, selectedDate, requestNotificationPermission }) => {
+            const [events, setEvents] = React.useState([]);
+            const [newEventTitle, setNewEventTitle] = React.useState('');
+            const [newEventDate, setNewEventDate] = React.useState(selectedDate.toISOString().split('T')[0]); // Default to current date
+            const [newEventTime, setNewEventTime] = React.useState('');
+            const [newEventDescription, setNewEventDescription] = React.useState('');
+            const [isLoading, setIsLoading] = React.useState(true);
+            const [error, setError] = React.useState('');
+            const monthYear = getMonthYear(selectedDate);
+
+            // Effect untuk memuat acara dari Firestore
+            React.useEffect(() => {
+                if (!user || !ledgerId || !db) {
+                    setIsLoading(false);
+                    setEvents([]);
+                    return;
+                }
+                setIsLoading(true);
+                const collectionPath = `ledgers/${ledgerId}/events`;
+                // Query untuk acara di bulan dan tahun yang dipilih
+                const q = query(collection(db, collectionPath), where('monthYear', '==', monthYear));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const fetchedEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => {
+                        // Urutkan berdasarkan tanggal dan waktu
+                        const dateA = a.date + ' ' + (a.time || '00:00');
+                        const dateB = b.date + ' ' + (b.time || '00:00');
+                        return new Date(dateA) - new Date(dateB);
+                    });
+                    setEvents(fetchedEvents);
+                    setIsLoading(false);
+                }, (err) => {
+                    console.error("Firestore Error:", err);
+                    setError("Gagal memuat acara.");
+                    setIsLoading(false);
+                });
+                return () => unsubscribe();
+            }, [user, ledgerId, monthYear]);
+
+            // Handler untuk menambahkan acara baru
+            const addEvent = async (e) => {
+                e.preventDefault();
+                if (!newEventTitle.trim() || !newEventDate || !user || !user.uid || !ledgerId || !db) {
+                    setError("Judul acara atau tanggal tidak boleh kosong.");
+                    return;
+                }
+                try {
+                    const eventData = {
+                        title: newEventTitle,
+                        date: newEventDate,
+                        time: newEventTime || null,
+                        description: newEventDescription || null,
+                        userId: user.uid,
+                        userName: user.name || 'Anonim',
+                        createdAt: serverTimestamp(),
+                        monthYear: monthYear
+                    };
+                    await addDoc(collection(db, `ledgers/${ledgerId}/events`), removeUndefined(eventData));
+                    setNewEventTitle('');
+                    setNewEventDate(selectedDate.toISOString().split('T')[0]); // Reset to current selected date
+                    setNewEventTime('');
+                    setNewEventDescription('');
+                    setError('');
+
+                    // Jadwalkan notifikasi jika waktu diatur dan izin diberikan
+                    if (newEventTime) {
+                        const [year, month, day] = newEventDate.split('-').map(Number);
+                        const [hours, minutes] = newEventTime.split(':').map(Number);
+                        const notificationTime = new Date(year, month - 1, day, hours, minutes, 0); // month - 1 karena bulan dimulai dari 0
+                        const now = new Date();
+
+                        if (notificationTime > now && Notification.permission === "granted") {
+                            const delay = notificationTime.getTime() - now.getTime();
+                            setTimeout(() => {
+                                new Notification('Pengingat Acara', {
+                                    body: `Waktunya untuk: ${newEventTitle} pada ${new Date(newEventDate).toLocaleDateString('id-ID')} jam ${newEventTime}!`,
+                                    icon: 'https://placehold.co/40x40/E2E8F0/4A5568?text=🗓️' // Icon placeholder untuk acara
+                                });
+                            }, delay);
+                            console.log(`Notifikasi acara dijadwalkan untuk: ${newEventTitle} pada ${notificationTime}`);
+                        } else if (Notification.permission === "default") {
+                            requestNotificationPermission(); // Minta izin jika belum diberikan
+                        }
+                    }
+
+                } catch (err) {
+                    console.error("Error adding event:", err);
+                    setError("Gagal menambah acara.");
+                }
+            };
+
+            // Handler untuk menghapus acara
+            const deleteEvent = async (id) => {
+                if (!db) return;
+                try {
+                    await deleteDoc(doc(db, `ledgers/${ledgerId}/events/${id}`));
+                } catch (err) {
+                    console.error("Error deleting event:", err);
+                    setError("Gagal menghapus acara.");
+                }
+            };
+
             return (
-                <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Kalender Pasangan - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
-                    <p className="text-gray-600">Fungsionalitas kalender akan hadir di sini. Anda dapat menambahkan acara, tanggal penting, dan pengingat bersama.</p>
-                    <button
-                        onClick={requestNotificationPermission}
-                        className="mt-4 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200"
-                    >
-                        Aktifkan Notifikasi
-                    </button>
-                    {/* Placeholder for calendar events */}
-                    <div className="mt-6 p-4 border border-dashed border-gray-300 rounded-lg text-center text-gray-500">
-                        <p>Tidak ada acara yang dijadwalkan untuk bulan ini.</p>
+                <>
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Tambah Acara Baru</h2>
+                        <form onSubmit={addEvent} className="space-y-4">
+                            <input
+                                type="text"
+                                value={newEventTitle}
+                                onChange={(e) => setNewEventTitle(e.target.value)}
+                                placeholder="Judul Acara (misal: Kencan Malam)"
+                                className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                required
+                            />
+                            <div className="flex space-x-2">
+                                <input
+                                    type="date"
+                                    value={newEventDate}
+                                    onChange={(e) => setNewEventDate(e.target.value)}
+                                    className="w-1/2 p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                    required
+                                />
+                                <input
+                                    type="time"
+                                    value={newEventTime}
+                                    onChange={(e) => setNewEventTime(e.target.value)}
+                                    className="w-1/2 p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                />
+                            </div>
+                            <textarea
+                                value={newEventDescription}
+                                onChange={(e) => setNewEventDescription(e.target.value)}
+                                placeholder="Deskripsi (opsional)"
+                                className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200 min-h-[80px]"
+                            ></textarea>
+                            <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 flex items-center justify-center shadow-custom-blue">
+                                <PlusIcon /><span>Tambah Acara</span>
+                            </button>
+                        </form>
+                        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                     </div>
-                </div>
+
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Acara Bulan Ini - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
+                        {isLoading ? <p className="text-center text-gray-500">Memuat acara...</p> : events.length === 0 ? <div className="text-center text-gray-500 p-8">Belum ada acara yang dijadwalkan bulan ini. Tambahkan acara pertama Anda di atas!</div> : (
+                            <div className="space-y-4">
+                                {events.map(event => (
+                                    <div key={event.id} className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <h3 className="font-bold text-lg text-gray-800">{event.title}</h3>
+                                                <p className="text-sm text-gray-600">
+                                                    {new Date(event.date).toLocaleDateString('id-ID')} {event.time ? `pukul ${event.time}` : ''}
+                                                </p>
+                                                {event.description && <p className="text-sm text-gray-700 mt-1">{event.description}</p>}
+                                                <p className="text-xs text-gray-500 mt-1">Ditambahkan oleh {event.userName || 'Anonim'}</p>
+                                            </div>
+                                            <button onClick={() => deleteEvent(event.id)} className="text-gray-400 hover:text-red-500 transition duration-200">
+                                                <TrashIcon />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </>
             );
         };
 
@@ -1306,6 +1488,17 @@
             const [photo, setPhoto] = React.useState(null); // This will hold the base64 data URL
             const [photoPreview, setPhotoPreview] = React.useState(user?.photoURL || 'https://placehold.co/100x100/E2E8F0/4A5568?text=?');
             const fileInputRef = React.useRef();
+
+            React.useEffect(() => {
+                // Update photoPreview if user's photoURL changes externally (e.g., from ledgerDoc)
+                if (user?.photoURL && user.photoURL !== photoPreview) {
+                    setPhotoPreview(user.photoURL);
+                }
+                // Update name if user's name changes externally
+                if (user?.name && user.name !== name) {
+                    setName(user.name);
+                }
+            }, [user]);
 
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
@@ -1428,7 +1621,7 @@
                 } catch (error) {
                     console.error("Registration error:", error);
                     setAuthError(error);
-                    throw error; // Lempar error agar AuthScreen bisa menampilkannya
+                    throw error; // Throw error so AuthScreen can display it
                 }
             };
 
@@ -1443,7 +1636,7 @@
                 } catch (error) {
                     console.error("Login error:", error);
                     setAuthError(error);
-                    throw error; // Lempar error agar AuthScreen bisa menampilkannya
+                    throw error; // Throw error so AuthScreen can display it
                 }
             };
 
@@ -1468,28 +1661,28 @@
                 }
                 const ledgerDocRef = doc(db, `ledgers/${ledgerId}`);
                 try {
-                    // Ambil data partisipan saat ini, pastikan itu objek
+                    // Get current participant data, ensure it's an object
                     const currentParticipantData = ledgerDoc?.participants?.[user.uid] || {};
 
-                    // Bangun objek newParticipantData dengan memastikan tidak ada undefined
+                    // Build newParticipantData object, ensuring no undefined values
                     const newParticipantData = {
-                        name: name || null, // Pastikan nama selalu string atau null
-                        photoURL: photoURL || currentParticipantData.photoURL || null, // Pastikan photoURL selalu string atau null
-                        email: user.email || null // Pastikan email selalu string atau null
+                        name: name || null, // Ensure name is always string or null
+                        photoURL: photoURL || currentParticipantData.photoURL || null, // Ensure photoURL is always string or null
+                        email: user.email || null // Ensure email is always string or null
                     };
 
-                    // Hapus properti undefined secara rekursif sebelum menyimpan ke Firestore
-                    // Ini adalah lapisan pengaman terakhir
+                    // Recursively remove undefined properties before saving to Firestore
+                    // This is the last safety layer
                     const sanitizedParticipantData = removeUndefined(newParticipantData);
 
-                    // Debugging: Log data sebelum disimpan
-                    console.log("Data yang akan disimpan ke Firestore:", sanitizedParticipantData);
+                    // Debugging: Log data before saving
+                    console.log("Data to be saved to Firestore:", sanitizedParticipantData);
 
                     await setDoc(ledgerDocRef, {
                         participants: { [user.uid]: sanitizedParticipantData }
                     }, { merge: true });
 
-                    // Perbarui user state di App dengan nama dan photoURL yang baru
+                    // Update user state in App with the new name and photoURL
                     setUser(prev => ({ ...prev, ...sanitizedParticipantData }));
                     setShowProfileSetup(false);
                 } catch (error) {
@@ -1497,7 +1690,7 @@
                 }
             };
 
-            // FIX: Pindahkan definisi fungsi-fungsi ini ke sini
+            // FIX: Move the definitions of these functions here
             const createNewLedger = () => {
                 const newId = `BERSAMA-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
                 setLedgerId(newId);
@@ -1521,35 +1714,35 @@
             };
 
 
-            // Effect untuk otentikasi Firebase
+            // Effect for Firebase authentication
             React.useEffect(() => {
                 if (!authInstance) return;
 
                 const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
                     if (currentUser) {
-                        // Pastikan properti disetel ke null jika undefined dari currentUser
+                        // Ensure properties are set to null if undefined from currentUser
                         setUser({
                             uid: currentUser.uid,
                             email: currentUser.email || null,
-                            name: currentUser.displayName || null, // displayName bisa undefined
-                            photoURL: currentUser.photoURL || null // photoURL bisa undefined
+                            name: currentUser.displayName || null, // displayName can be undefined
+                            photoURL: currentUser.photoURL || null // photoURL can be undefined
                         });
-                        setIsAuthReady(true); // Otentikasi siap
+                        setIsAuthReady(true); // Authentication is ready
                     } else {
-                        // Jika tidak ada user yang login, kita tidak lagi otomatis sign-in anonim di sini
-                        // Pengguna akan diarahkan ke AuthScreen
+                        // If no user is logged in, we no longer automatically sign-in anonymously here
+                        // User will be directed to AuthScreen
                         setUser(null);
-                        setIsAuthReady(true); // Tetap set ke true agar AuthScreen bisa ditampilkan
+                        setIsAuthReady(true); // Still set to true so AuthScreen can be displayed
                     }
                 });
                 return () => unsubscribe();
             }, [authInstance]);
 
-            // Effect untuk memuat data ledger dan profil pengguna
+            // Effect to load ledger data and user profile
             React.useEffect(() => {
-                // Hanya jalankan jika user sudah terotentikasi dan db ada
+                // Only run if user is authenticated and db exists
                 if (!user?.uid || !ledgerId || !db) {
-                    setLedgerDoc(null); // Reset ledgerDoc jika tidak ada user/ledgerId
+                    setLedgerDoc(null); // Reset ledgerDoc if no user/ledgerId
                     return;
                 }
 
@@ -1559,9 +1752,9 @@
                         const data = docSnap.data();
                         setLedgerDoc(data);
                         const participants = data.participants || {};
-                        // Perbarui user state dengan data profil dari ledger
+                        // Update user state with profile data from ledger
                         if (participants[user.uid]) {
-                            // Pastikan properti disetel ke null jika undefined dari Firestore
+                            // Ensure properties are set to null if undefined from Firestore
                             setUser(prev => ({
                                 ...prev,
                                 name: participants[user.uid].name || null,
@@ -1569,8 +1762,8 @@
                             }));
                             setShowProfileSetup(false);
                         } else {
-                            // Jika user belum ada di participants ledger, tampilkan setup profil
-                            // Pastikan properti name dan photoURL di user state adalah null
+                            // If user is not yet in ledger participants, show profile setup
+                            // Ensure name and photoURL properties in user state are null
                             setUser(prev => ({
                                 ...prev,
                                 name: null,
@@ -1579,7 +1772,7 @@
                             setShowProfileSetup(true);
                         }
                     } else {
-                        // Jika ledger tidak ada, mungkin ID salah atau baru dibuat, minta pengguna membuat profil
+                        // If ledger does not exist, maybe ID is wrong or newly created, ask user to create profile
                         setLedgerDoc(null);
                         setShowProfileSetup(true);
                     }
@@ -1591,7 +1784,7 @@
                 return unsub;
             }, [user?.uid, ledgerId, db]);
 
-            // Tampilan berdasarkan status aplikasi
+            // Display based on application status
             if (!isConfigValid) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4 bg-red-50">
@@ -1611,7 +1804,7 @@
                 );
             }
 
-            // Menunggu otentikasi siap sebelum menampilkan layar otentikasi atau aplikasi
+            // Waiting for authentication to be ready before displaying auth screen or app
             if (!isAuthReady) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -1620,7 +1813,7 @@
                 );
             }
 
-            // Jika belum ada user yang login, tampilkan AuthScreen
+            // If no user is logged in, display AuthScreen
             if (!user) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -1629,7 +1822,7 @@
                 );
             }
 
-            // Jika user sudah login tapi belum memilih/membuat ledger
+            // If user is logged in but hasn't selected/created a ledger
             if (!ledgerId) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -1649,26 +1842,26 @@
                 );
             }
 
-            // Jika user sudah login dan ledgerId sudah ada, tampilkan aplikasi utama
+            // If user is logged in and ledgerId exists, display the main application
             return (
                 <div className="min-h-screen font-sans bg-gradient-to-br from-blue-50 to-indigo-100 pb-16"> {/* Add padding-bottom for fixed footer */}
                     {showProfileSetup && <ProfileSetup onProfileSubmit={handleProfileSubmit} user={user} />}
                     <header className="bg-white/70 backdrop-blur-sm shadow-md sticky top-0 z-20">
-                        <div className="max-w-4xl mx-auto p-1 sm:p-4"> {/* Mengurangi padding secara keseluruhan di mobile */}
-                            {/* Mengurangi padding vertikal di mobile dan menyesuaikan ukuran teks */}
-                            <div className="flex flex-col sm:flex-row justify-between items-center py-0.5 sm:py-4"> {/* Mengurangi py lebih lanjut */}
-                                <div className="flex items-center gap-0.5 sm:gap-3 mb-1 sm:mb-0"> {/* Mengurangi gap dan mb lebih lanjut */}
-                                    {/* Menggunakan URL placeholder publik untuk logo di header */}
+                        <div className="max-w-4xl mx-auto p-1 sm:p-4"> {/* Reduced overall padding on mobile */}
+                            {/* Reduced vertical padding on mobile and adjusted text size */}
+                            <div className="flex flex-col sm:flex-row justify-between items-center py-0.5 sm:py-4"> {/* Further reduced py */}
+                                <div className="flex items-center gap-0.5 sm:gap-3 mb-1 sm:mb-0"> {/* Further reduced gap and mb */}
+                                    {/* Using public placeholder URL for logo in header */}
                                     <img
                                         src="https://placehold.co/40x40/E2E8F0/4A5568?text=Logo"
                                         alt="Logo Dompet Bersama"
-                                        className="h-5 w-auto sm:h-10" /* Mengurangi tinggi logo di mobile */
-                                        onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/40x40/E2E8F0/4A5568?text=Error'; }} /* Fallback jika gambar gagal dimuat */
+                                        className="h-5 w-auto sm:h-10" /* Reduced logo height on mobile */
+                                        onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/40x40/E2E8F0/4A5568?text=Error'; }} /* Fallback if image fails to load */
                                     />
-                                    <h1 className="text-sm font-bold text-blue-600 sm:text-xl">Ruang Bersama</h1> {/* Mengurangi ukuran teks di mobile */}
+                                    <h1 className="text-sm font-bold text-blue-600 sm:text-xl">Ruang Bersama</h1> {/* Reduced text size on mobile */}
                                 </div>
-                                {/* Mengurangi ukuran MonthSelector di mobile */}
-                                <MonthSelector selectedDate={selectedDate} setSelectedDate={setSelectedDate} /> {/* Memastikan MonthSelector menerima prop */}
+                                {/* Reduced MonthSelector size on mobile */}
+                                <MonthSelector selectedDate={selectedDate} setSelectedDate={setSelectedDate} /> {/* Ensure MonthSelector receives prop */}
                                 <button onClick={handleLogout} className="text-xs text-red-500 hover:underline mt-0.5 sm:mt-0">Logout</button>
                             </div>
                             <div className="flex justify-center items-center mt-0.5">
@@ -1684,12 +1877,12 @@
                         {activeTab === 'finance' && <FinanceTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
                         {activeTab === 'savings' && <SavingsTracker user={user} ledgerId={ledgerId} />}
                         {activeTab === 'habits' && <HabitTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} />}
-                        {activeTab === 'calendar' && <CoupleCalendar user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
+                        {activeTab === 'calendar' && <EventsCalendar user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} />}
                         {activeTab === 'diary' && <Diary user={user} ledgerId={ledgerId} selectedDate={selectedDate} />}
                         {activeTab === 'wishlist' && <TravelWishlist user={user} ledgerId={ledgerId} />}
                     </main>
 
-                    {/* Footer Navigasi seperti Instagram */}
+                    {/* Footer Navigation like Instagram */}
                     <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
                         <nav className="flex justify-around items-center h-10 sm:h-16 max-w-xl mx-auto">
                             <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'dashboard' ? 'text-indigo-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
@@ -1705,8 +1898,12 @@
                                 <span>Tabungan</span>
                             </button>
                             <button onClick={() => setActiveTab('habits')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'habits' ? 'text-purple-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <CalendarIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
+                                <CheckSquareIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" /> {/* Ikon baru untuk Kebiasaan */}
                                 <span>Kebiasaan</span>
+                            </button>
+                            <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'calendar' ? 'text-blue-600 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <CalendarIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" /> {/* Ikon kalender untuk Kalender */}
+                                <span>Kalender</span>
                             </button>
                             <button onClick={() => setActiveTab('wishlist')} className={`flex flex-col items-center justify-center p-0.5 text-xs font-medium transition duration-200 ${activeTab === 'wishlist' ? 'text-red-500 tab-active' : 'text-gray-500 hover:text-gray-700'}`}>
                                 <MapPinIcon className="h-4 w-4 mb-0.5 sm:h-6 sm:mb-1" />
