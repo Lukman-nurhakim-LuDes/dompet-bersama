@@ -2393,15 +2393,45 @@
             };
 
             // FIX: Move the definitions of these functions here
-            const createNewLedger = () => {
+            const createNewLedger = async () => { // Make async
                 const newId = `BERSAMA-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
                 setLedgerId(newId);
                 localStorage.setItem('ledgerId', newId);
+
+                // Immediately try to create the ledger document with the current user as participant
+                if (user && db) {
+                    const ledgerDocRef = doc(db, `ledgers/${newId}`);
+                    try {
+                        await setDoc(ledgerDocRef, {
+                            createdAt: serverTimestamp(),
+                            createdBy: user.uid,
+                            participants: {
+                                [user.uid]: {
+                                    name: user.name || user.email || 'Pengguna Baru',
+                                    email: user.email || null,
+                                    photoURL: user.photoURL || null
+                                }
+                            }
+                        });
+                        console.log("New ledger created with current user as participant:", newId);
+                        // After creating, the onSnapshot listener for ledgerDoc will pick it up
+                        // and trigger ProfileSetup if name/photoURL are missing.
+                    } catch (error) {
+                        console.error("Error creating new ledger document:", error);
+                        setFirestoreError("Gagal membuat ruang bersama baru. Pastikan Anda memiliki izin 'create' di aturan keamanan Firestore Anda untuk koleksi 'ledgers'.");
+                        // Clear ledgerId if creation fails to return to selection screen
+                        setLedgerId('');
+                        localStorage.removeItem('ledgerId');
+                    }
+                }
             };
+
             const joinLedger = () => {
                 if (tempLedgerId) {
                     setLedgerId(tempLedgerId);
                     localStorage.setItem('ledgerId', tempLedgerId);
+                    // The onSnapshot listener for ledgerDoc will then check if the user is a participant
+                    // and prompt for profile setup or show error if not.
                 }
             };
             const copyLedgerId = () => {
@@ -2445,6 +2475,7 @@
                 // Only run if user is authenticated and db exists
                 if (!user?.uid || !ledgerId || !db) {
                     setLedgerDoc(null); // Reset ledgerDoc if no user/ledgerId
+                    setShowProfileSetup(false); // Ensure profile setup is hidden if no ledger selected
                     return;
                 }
 
@@ -2465,19 +2496,22 @@
                             setShowProfileSetup(false);
                             setFirestoreError(null); // Clear Firestore error on successful ledger doc fetch
                         } else {
-                            // If user is not yet in ledger participants, show profile setup
-                            // Ensure name and photoURL properties in user state are null
+                            // If ledger exists but user is not yet in ledger participants, show profile setup
+                            // This scenario happens when a user joins an existing ledger.
+                            // They need to add their profile to the ledger's participants map.
                             setUser(prev => ({
                                 ...prev,
-                                name: null,
-                                photoURL: null
+                                name: null, // Reset name to null to force profile setup
+                                photoURL: null // Reset photoURL to null
                             }));
                             setShowProfileSetup(true);
-                            // Set a specific error for profile setup if ledger exists but user is not a participant
                             setFirestoreError("Profil Anda belum terdaftar di ruang bersama ini. Silakan lengkapi profil Anda.");
                         }
                     } else {
-                        // If ledger does not exist, maybe ID is wrong or newly created, ask user to create profile
+                        // If ledger does not exist, it means either:
+                        // 1. The ID is wrong.
+                        // 2. It's a newly created ID via "Buat Ruang Baru" but the document hasn't been written yet.
+                        // In this case, we show the profile setup to prompt user to create it.
                         setLedgerDoc(null);
                         setShowProfileSetup(true);
                         setFirestoreError("Ruang bersama tidak ditemukan atau Anda belum membuat/bergabung. Silakan buat ruang baru atau bergabung.");
@@ -2485,6 +2519,7 @@
                 }, (error) => {
                     console.error("Error fetching ledger document:", error);
                     setLedgerDoc(null);
+                    setShowProfileSetup(true); // Show profile setup on error to prompt action
                     setFirestoreError("Kesalahan Izin: Gagal memuat ruang bersama. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
                 });
                 return unsub;
