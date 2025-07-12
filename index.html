@@ -9,10 +9,10 @@
     <meta name="google-site-verification" content="9b5idOC6Ce2_GFZmJStbYbVjZ1qelnaRPCkxhu9qpxM" />
 
     <!-- Icon untuk Layar Utama (iOS) -->
-    <!-- Menggunakan logo hitam yang diunggah oleh pengguna -->
-    <link rel="apple-touch-icon" href="uploaded:original-b142c02ab6f9b991e3b36855fa55d403.webp-233117a0-40ae-4400-af34-da550a46276e">
+    <!-- Menggunakan placeholder. Ganti dengan URL ikon aplikasi Anda yang sebenarnya untuk pengalaman PWA yang lebih baik. -->
+    <link rel="apple-touch-icon" href="https://placehold.co/180x180/E2E8F0/4A5568?text=App+Icon">
     <!-- Manifest untuk Progressive Web App (PWA) untuk Android dan lainnya -->
-    <!-- Pastikan Anda membuat file manifest.json di root direktori Anda -->
+    <!-- Pastikan Anda membuat file manifest.json di root direktori Anda dan jalur ikon di dalamnya benar -->
     <link rel="manifest" href="/manifest.json">
 
     <!-- Memuat Library -->
@@ -79,14 +79,9 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- Konfigurasi Firebase ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyB91qA6AGjNBAEyIQSlHvN482esZKlP_Ok",
-            authDomain: "dompet-pasangan-kita.firebaseapp.com",
-            projectId: "dompet-pasangan-kita",
-            storageBucket: "dompet-pasangan-kita.appspot.com",
-            messagingSenderId: "54318864599",
-            appId: "1:54318864599:web:3fc852b439a62577563892"
-        };
+        // Menggunakan variabel global __firebase_config jika disediakan oleh lingkungan.
+        // Jika tidak, fallback ke objek kosong (ini akan menyebabkan isConfigValid menjadi false)
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
 
         // --- Inisialisasi Firebase ---
         let app, db, authInstance;
@@ -179,91 +174,8 @@
             );
         };
 
-        // --- Komponen AuthScreen (Baru) ---
-        const AuthScreen = ({ onLogin, onRegister, authError }) => {
-            const [email, setEmail] = React.useState('');
-            const [password, setPassword] = React.useState('');
-            const [isRegisterMode, setIsRegisterMode] = React.useState(false);
-            const [error, setError] = React.useState('');
-            const [loading, setLoading] = React.useState(false);
-
-            React.useEffect(() => {
-                if (authError) {
-                    setError(authError.message || "Terjadi kesalahan otentikasi.");
-                } else {
-                    setError('');
-                }
-            }, [authError]);
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setError('');
-                setLoading(true);
-                try {
-                    if (isRegisterMode) {
-                        await onRegister(email, password);
-                    } else {
-                        await onLogin(email, password);
-                    }
-                } catch (err) {
-                    setError(err.message || "Terjadi kesalahan. Silakan coba lagi.");
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            return (
-                <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
-                    <div className="w-full max-w-md bg-white/70 backdrop-blur-sm rounded-xl shadow-lg p-8 text-center">
-                        <h1 className="text-3xl font-bold text-gray-800 mb-2">Dompet & Target Bersama</h1>
-                        <p className="text-gray-600 mb-8">{isRegisterMode ? 'Daftar Akun Baru' : 'Masuk ke Akun Anda'}</p>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="relative">
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="Email"
-                                    className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                />
-                                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                            </div>
-                            <div className="relative">
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Kata Sandi"
-                                    className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                />
-                                <LockClosedIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                            </div>
-
-                            {error && <p className="text-red-600 text-sm">{error}</p>}
-
-                            <button
-                                type="submit"
-                                className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition duration-200 disabled:bg-blue-300"
-                                disabled={loading}
-                            >
-                                {loading ? 'Memproses...' : (isRegisterMode ? 'Daftar' : 'Masuk')}
-                            </button>
-                        </form>
-
-                        <button
-                            onClick={() => setIsRegisterMode(!isRegisterMode)}
-                            className="mt-6 text-blue-600 hover:underline text-sm"
-                            disabled={loading}
-                        >
-                            {isRegisterMode ? 'Sudah punya akun? Masuk di sini.' : 'Belum punya akun? Daftar di sini.'}
-                        </button>
-                    </div>
-                </div>
-            );
-        };
+        // --- Komponen AuthScreen (Dihapus karena otentikasi otomatis) ---
+        // Komponen ini tidak lagi digunakan karena aplikasi akan otomatis login/anonim.
 
         // --- Komponen Dashboard ---
         const Dashboard = ({ user, ledgerId, setActiveTab, ledgerDoc, selectedDate, setFirestoreError }) => {
@@ -329,6 +241,7 @@
                 }, (error) => {
                     console.error("Error fetching budgets:", error);
                     setFirestoreError("Kesalahan Izin: Gagal memuat anggaran. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    setIsLoading(false);
                 });
 
                 return () => {
@@ -846,6 +759,8 @@
                             });
                         } else {
                             // If budget category doesn't exist, create it as an expense
+                            // This might happen if a transaction is added to a category before a budget is explicitly set for it.
+                            // The user can then go to the Budget tab to set a proper budgetAmount.
                             await addDoc(collection(db, `ledgers/${ledgerId}/budgets`), {
                                 name: category,
                                 budgetAmount: 0, // No planned budget, just track spent
@@ -951,7 +866,7 @@
                     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Ringkasan Anggaran Bulan Ini</h2>
                         {budgets.length === 0 ? (
-                            <p className="text-center text-gray-500">Belum ada anggaran yang diatur untuk bulan ini.</p>
+                            <p className="text-center text-gray-500">Belum ada anggaran yang diatur untuk bulan ini. Kunjungi tab Anggaran untuk mengaturnya.</p>
                         ) : (
                             <div className="space-y-4">
                                 {budgets.map(budget => {
@@ -959,7 +874,7 @@
                                         .filter(t => t.category === budget.name && t.monthYear === monthYear && t.type === 'pengeluaran')
                                         .reduce((sum, t) => sum + Number(t.amount), 0);
                                     const remaining = budget.budgetAmount - spent;
-                                    const progress = (spent / budget.budgetAmount) * 100;
+                                    const progress = budget.budgetAmount > 0 ? (spent / budget.budgetAmount) * 100 : 0;
                                     const isOverBudget = remaining < 0;
 
                                     return (
@@ -971,7 +886,7 @@
                                                     <p className="text-sm text-gray-600">Terpakai: {formatCurrency(spent)}</p>
                                                     <p className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>Sisa: {formatCurrency(remaining)}</p>
                                                 </div>
-                                                <button onClick={() => deleteDoc(doc(db, `ledgers/${ledgerId}/budgets/${budget.id}`))} className="text-gray-400 hover:text-red-500 p-1 rounded-full transition duration-200"><TrashIcon /></button>
+                                                {/* Tombol hapus anggaran hanya di komponen BudgetTracker */}
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
                                                 <div className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isOverBudget ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${progress > 100 ? 100 : progress}%` }}></div>
@@ -982,26 +897,6 @@
                                 })}
                             </div>
                         )}
-                        <button onClick={() => {
-                                const categoryName = prompt("Masukkan nama kategori anggaran baru:");
-                                const budgetAmount = prompt("Masukkan jumlah anggaran untuk kategori ini:");
-                                if (categoryName && budgetAmount && !isNaN(Number(budgetAmount))) {
-                                    addDoc(collection(db, `ledgers/${ledgerId}/budgets`), {
-                                        name: categoryName,
-                                        budgetAmount: Number(budgetAmount),
-                                        spentAmount: 0, // Initialize spent amount for new budget
-                                        monthYear: monthYear,
-                                        userId: user.uid,
-                                        userName: user.name || 'Anonim',
-                                        createdAt: serverTimestamp()
-                                    }).catch(err => console.error("Error adding budget from prompt:", err));
-                                } else if (categoryName || budgetAmount) {
-                                    // Replaced alert with console.log as per new instructions
-                                    console.log("Input tidak valid. Nama kategori dan jumlah anggaran harus diisi dengan benar.");
-                                }
-                            }} className="w-full mt-4 bg-blue-100 text-blue-800 font-bold py-2 px-4 rounded-lg hover:bg-blue-200 transition duration-200">
-                            Atur Anggaran Baru
-                        </button>
                     </div>
 
                     <div>
@@ -1990,15 +1885,128 @@
         };
 
 
-        // --- Komponen BudgetTracker (Baru) ---
-        // Fungsionalitas BudgetTracker sekarang diintegrasikan ke FinanceTracker
-        // Ini adalah komponen placeholder yang tidak lagi digunakan secara langsung sebagai tab terpisah
+        // --- Komponen BudgetTracker (Diperbarui) ---
         const BudgetTracker = ({ user, ledgerId, selectedDate, setFirestoreError }) => {
+            const [budgets, setBudgets] = React.useState([]);
+            const [newCategoryName, setNewCategoryName] = React.useState('');
+            const [newBudgetAmount, setNewBudgetAmount] = React.useState('');
+            const [isLoading, setIsLoading] = React.useState(true);
+            const [error, setError] = React.useState('');
+            const monthYear = getMonthYear(selectedDate);
+
+            // Fetch budgets
+            React.useEffect(() => {
+                if (!user || !ledgerId || !db) { setIsLoading(false); setBudgets([]); return; }
+                setIsLoading(true);
+                const collectionPath = `ledgers/${ledgerId}/budgets`;
+                const q = query(collection(db, collectionPath), where('monthYear', '==', monthYear));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    setBudgets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    setIsLoading(false);
+                }, (err) => {
+                    console.error("Firestore Error fetching budgets:", err);
+                    setFirestoreError("Kesalahan Izin: Gagal memuat anggaran. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
+                    setError("Gagal memuat data anggaran.");
+                    setIsLoading(false);
+                });
+                return () => unsubscribe();
+            }, [user, ledgerId, monthYear, setFirestoreError]);
+
+            const addBudget = async (e) => {
+                e.preventDefault();
+                if (!newCategoryName.trim() || !newBudgetAmount || isNaN(Number(newBudgetAmount)) || !user || !ledgerId || !db) {
+                    setError("Nama kategori dan jumlah anggaran harus diisi dengan benar.");
+                    return;
+                }
+                try {
+                    await addDoc(collection(db, `ledgers/${ledgerId}/budgets`), {
+                        name: newCategoryName,
+                        budgetAmount: Number(newBudgetAmount),
+                        spentAmount: 0, // Initialize spent amount
+                        monthYear: monthYear,
+                        userId: user.uid,
+                        userName: user.name || 'Anonim',
+                        createdAt: serverTimestamp()
+                    });
+                    setNewCategoryName('');
+                    setNewBudgetAmount('');
+                    setError('');
+                } catch (err) {
+                    console.error("Error adding budget:", err);
+                    setError("Gagal menambah anggaran.");
+                }
+            };
+
+            const deleteBudget = async (id) => {
+                if (!db) return;
+                try {
+                    await deleteDoc(doc(db, `ledgers/${ledgerId}/budgets/${id}`));
+                } catch (err) {
+                    console.error("Error deleting budget:", err);
+                    setError("Gagal menghapus anggaran.");
+                }
+            };
+
             return (
-                <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Anggaran</h2>
-                    <p className="text-gray-600">Fungsionalitas anggaran kini terintegrasi langsung di tab Keuangan. Anda dapat mengatur anggaran per kategori saat menambahkan transaksi pengeluaran.</p>
-                </div>
+                <>
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Atur Anggaran Baru</h2>
+                        <form onSubmit={addBudget} className="space-y-4">
+                            <input
+                                type="text"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                placeholder="Nama Kategori (misal: Makanan)"
+                                className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                required
+                            />
+                            <input
+                                type="number"
+                                value={newBudgetAmount}
+                                onChange={(e) => setNewBudgetAmount(e.target.value)}
+                                placeholder="Jumlah Anggaran (misal: 1000000)"
+                                className="w-full p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                required
+                            />
+                            <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 flex items-center justify-center shadow-custom-blue">
+                                <PlusIcon /><span>Tambah Anggaran</span>
+                            </button>
+                        </form>
+                        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                    </div>
+
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Anggaran Anda - {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</h2>
+                        {isLoading ? <p className="text-center text-gray-500">Memuat anggaran...</p> : budgets.length === 0 ? <div className="text-center text-gray-500 p-8">Belum ada anggaran yang diatur untuk bulan ini.</div> : (
+                            <div className="space-y-4">
+                                {budgets.map(budget => {
+                                    // Note: spentAmount is updated in FinanceTracker, so it should reflect here
+                                    const progress = budget.budgetAmount > 0 ? (budget.spentAmount / budget.budgetAmount) * 100 : 0;
+                                    const remaining = budget.budgetAmount - budget.spentAmount;
+                                    const isOverBudget = remaining < 0;
+
+                                    return (
+                                        <div key={budget.id} className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <p className="font-semibold text-gray-800">{budget.name}</p>
+                                                    <p className="text-sm text-gray-600">Anggaran: {formatCurrency(budget.budgetAmount)}</p>
+                                                    <p className="text-sm text-gray-600">Terpakai: {formatCurrency(budget.spentAmount)}</p>
+                                                    <p className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>Sisa: {formatCurrency(remaining)}</p>
+                                                </div>
+                                                <button onClick={() => deleteBudget(budget.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-full transition duration-200"><TrashIcon /></button>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
+                                                <div className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isOverBudget ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${progress > 100 ? 100 : progress}%` }}></div>
+                                            </div>
+                                            {isOverBudget && <p className="text-xs text-red-500 mt-1">Anda melebihi anggaran untuk kategori ini!</p>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </>
             );
         };
 
@@ -2274,8 +2282,11 @@
 
         // --- Komponen Utama Aplikasi ---
         function App() {
-            const isConfigValid = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("GANTI_DENGAN");
+            // Menggunakan __firebase_config untuk validasi konfigurasi
+            const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId;
 
+            // Menggunakan __app_id jika tersedia, jika tidak, fallback ke localStorage atau string default
+            const appId = typeof __app_id !== 'undefined' ? __app_id : (localStorage.getItem('appId') || 'default-app-id');
             const [user, setUser] = React.useState(null);
             const [ledgerId, setLedgerId] = React.useState(localStorage.getItem('ledgerId') || '');
             const [tempLedgerId, setTempLedgerId] = React.useState('');
@@ -2284,10 +2295,9 @@
             const [showProfileSetup, setShowProfileSetup] = React.useState(false);
             const [ledgerDoc, setLedgerDoc] = React.useState(null);
             const [selectedDate, setSelectedDate] = React.useState(new Date());
-            const [authError, setAuthError] = React.useState(null);
-            const [isAuthReady, setIsAuthReady] = React.useState(false); // State baru untuk melacak kesiapan otentikasi
-            const [showMenuPopup, setShowMenuPopup] = React.useState(false); // State baru untuk menu popup
-            const [firestoreError, setFirestoreError] = React.useState(null); // State baru untuk error Firestore
+            const [firestoreError, setFirestoreError] = React.useState(null); // State untuk error Firestore
+            const [isAuthReady, setIsAuthReady] = React.useState(false); // State untuk melacak kesiapan otentikasi
+            const [showMenuPopup, setShowMenuPopup] = React.useState(false); // State untuk menu popup
 
             // Log selectedDate di App setiap kali berubah
             React.useEffect(() => {
@@ -2309,37 +2319,42 @@
                 }
             };
 
-            // Fungsi untuk registrasi
-            const handleRegister = async (email, password) => {
-                try {
-                    // Set persistence before creating user
-                    await setPersistence(authInstance, browserLocalPersistence);
-                    await createUserWithEmailAndPassword(authInstance, email, password);
-                    setAuthError(null); // Reset error
-                    requestNotificationPermission(); // Request permission after successful registration
-                } catch (error) {
-                    console.error("Registration error:", error);
-                    setAuthError(error);
-                    throw error; // Throw error so AuthScreen can display it
-                }
-            };
+            // Effect untuk otentikasi Firebase
+            React.useEffect(() => {
+                if (!authInstance) return;
 
-            // Fungsi untuk login
-            const handleLogin = async (email, password) => {
-                try {
-                    // Set persistence before signing in
-                    await setPersistence(authInstance, browserLocalPersistence);
-                    await signInWithEmailAndPassword(authInstance, email, password);
-                    setAuthError(null); // Reset error
-                    requestNotificationPermission(); // Request permission after successful login
-                } catch (error) {
-                    console.error("Login error:", error);
-                    setAuthError(error);
-                    throw error; // Throw error so AuthScreen can display it
-                }
-            };
+                const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
+                    if (currentUser) {
+                        // Pengguna sudah login (baik melalui token kustom atau sebelumnya)
+                        setUser({
+                            uid: currentUser.uid,
+                            email: currentUser.email || null,
+                            name: currentUser.displayName || null,
+                            photoURL: currentUser.photoURL || null
+                        });
+                        setIsAuthReady(true);
+                    } else {
+                        // Tidak ada pengguna yang login, coba login dengan token kustom atau anonim
+                        try {
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await signInWithCustomToken(authInstance, __initial_auth_token);
+                                console.log("Signed in with custom token.");
+                            } else {
+                                await signInAnonymously(authInstance);
+                                console.log("Signed in anonymously.");
+                            }
+                        } catch (error) {
+                            console.error("Authentication failed:", error);
+                            setFirestoreError("Gagal mengotentikasi pengguna. Silakan coba lagi.");
+                        } finally {
+                            setIsAuthReady(true);
+                        }
+                    }
+                });
+                return () => unsubscribe();
+            }, [authInstance]);
 
-            // Fungsi untuk logout
+
             const handleLogout = async () => {
                 try {
                     await signOut(authInstance);
@@ -2392,7 +2407,6 @@
                 }
             };
 
-            // FIX: Move the definitions of these functions here
             const createNewLedger = async () => { // Make async
                 const newId = `BERSAMA-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
                 setLedgerId(newId);
@@ -2445,73 +2459,56 @@
                 setTimeout(() => setCopied(false), 2000);
             };
 
-
-            // Effect for Firebase authentication
+            // Effect untuk memuat data ledger dan profil pengguna
             React.useEffect(() => {
-                if (!authInstance) return;
-
-                const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
-                    if (currentUser) {
-                        // Ensure properties are set to null if undefined from currentUser
-                        setUser({
-                            uid: currentUser.uid,
-                            email: currentUser.email || null,
-                            name: currentUser.displayName || null, // displayName can be undefined
-                            photoURL: currentUser.photoURL || null // photoURL can be undefined
-                        });
-                        setIsAuthReady(true); // Authentication is ready
-                    } else {
-                        // If no user is logged in, we no longer automatically sign-in anonymously here
-                        // User will be directed to AuthScreen
-                        setUser(null);
-                        setIsAuthReady(true); // Still set to true so AuthScreen can be displayed
-                    }
-                });
-                return () => unsubscribe();
-            }, [authInstance]);
-
-            // Effect to load ledger data and user profile
-            React.useEffect(() => {
-                // Only run if user is authenticated and db exists
-                if (!user?.uid || !ledgerId || !db) {
-                    setLedgerDoc(null); // Reset ledgerDoc if no user/ledgerId
-                    setShowProfileSetup(false); // Ensure profile setup is hidden if no ledger selected
+                // Hanya berjalan jika user terotentikasi dan db ada
+                if (!user?.uid || !db || !isAuthReady) { // Tambahkan isAuthReady sebagai dependensi
+                    setLedgerDoc(null); // Reset ledgerDoc jika tidak ada user/ledgerId
+                    setShowProfileSetup(false); // Pastikan pengaturan profil tersembunyi jika tidak ada ledger yang dipilih
                     return;
                 }
 
-                const ledgerDocRef = doc(db, `ledgers/${ledgerId}`);
+                // Jika ledgerId belum ada di localStorage, biarkan layar pemilihan ledger muncul
+                if (!localStorage.getItem('ledgerId')) {
+                    setLedgerId('');
+                    return;
+                }
+
+                const currentLedgerId = localStorage.getItem('ledgerId');
+                setLedgerId(currentLedgerId); // Pastikan state ledgerId sinkron
+
+                const ledgerDocRef = doc(db, `ledgers/${currentLedgerId}`);
                 const unsub = onSnapshot(ledgerDocRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         setLedgerDoc(data);
                         const participants = data.participants || {};
-                        // Update user state with profile data from ledger
+                        // Perbarui state pengguna dengan data profil dari ledger
                         if (participants[user.uid]) {
-                            // Ensure properties are set to null if undefined from Firestore
                             setUser(prev => ({
                                 ...prev,
                                 name: participants[user.uid].name || null,
                                 photoURL: participants[user.uid].photoURL || null
                             }));
                             setShowProfileSetup(false);
-                            setFirestoreError(null); // Clear Firestore error on successful ledger doc fetch
+                            setFirestoreError(null); // Hapus error Firestore setelah berhasil mengambil dokumen ledger
                         } else {
-                            // If ledger exists but user is not yet in ledger participants, show profile setup
-                            // This scenario happens when a user joins an existing ledger.
-                            // They need to add their profile to the ledger's participants map.
+                            // Jika ledger ada tetapi pengguna belum ada di peserta ledger, tampilkan pengaturan profil
+                            // Skenario ini terjadi ketika pengguna bergabung dengan ledger yang sudah ada.
+                            // Mereka perlu menambahkan profil mereka ke peta peserta ledger.
                             setUser(prev => ({
                                 ...prev,
-                                name: null, // Reset name to null to force profile setup
-                                photoURL: null // Reset photoURL to null
+                                name: null, // Reset nama menjadi null untuk memaksa pengaturan profil
+                                photoURL: null // Reset photoURL menjadi null
                             }));
                             setShowProfileSetup(true);
                             setFirestoreError("Profil Anda belum terdaftar di ruang bersama ini. Silakan lengkapi profil Anda.");
                         }
                     } else {
-                        // If ledger does not exist, it means either:
-                        // 1. The ID is wrong.
-                        // 2. It's a newly created ID via "Buat Ruang Baru" but the document hasn't been written yet.
-                        // In this case, we show the profile setup to prompt user to create it.
+                        // Jika ledger tidak ada, berarti:
+                        // 1. ID salah.
+                        // 2. Ini adalah ID yang baru dibuat melalui "Buat Ruang Baru" tetapi dokumen belum ditulis.
+                        // Dalam kasus ini, kita menampilkan pengaturan profil untuk meminta pengguna membuatnya.
                         setLedgerDoc(null);
                         setShowProfileSetup(true);
                         setFirestoreError("Ruang bersama tidak ditemukan atau Anda belum membuat/bergabung. Silakan buat ruang baru atau bergabung.");
@@ -2519,13 +2516,14 @@
                 }, (error) => {
                     console.error("Error fetching ledger document:", error);
                     setLedgerDoc(null);
-                    setShowProfileSetup(true); // Show profile setup on error to prompt action
+                    setShowProfileSetup(true); // Tampilkan pengaturan profil saat terjadi error untuk meminta tindakan
                     setFirestoreError("Kesalahan Izin: Gagal memuat ruang bersama. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
                 });
                 return unsub;
-            }, [user?.uid, ledgerId, db, setFirestoreError]);
+            }, [user?.uid, ledgerId, db, isAuthReady, setFirestoreError]);
 
-            // Display based on application status
+
+            // Tampilan berdasarkan status aplikasi
             if (!isConfigValid) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4 bg-red-50">
@@ -2545,7 +2543,7 @@
                 );
             }
 
-            // Waiting for authentication to be ready before displaying auth screen or app
+            // Menunggu otentikasi siap sebelum menampilkan layar otentikasi atau aplikasi
             if (!isAuthReady) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -2554,16 +2552,7 @@
                 );
             }
 
-            // If no user is logged in, display AuthScreen
-            if (!user) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
-                        <AuthScreen onLogin={handleLogin} onRegister={handleRegister} authError={authError} />
-                    </div>
-                );
-            }
-
-            // If user is logged in but hasn't selected/created a ledger
+            // Jika pengguna login tetapi belum memilih/membuat ledger
             if (!ledgerId) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -2583,7 +2572,7 @@
                 );
             }
 
-            // If user is logged in and ledgerId exists, display the main application
+            // Jika pengguna login dan ledgerId ada, tampilkan aplikasi utama
             return (
                 <div className="min-h-screen font-sans bg-gradient-to-br from-blue-50 to-indigo-100 pb-16"> {/* Add padding-bottom for fixed footer */}
                     {showProfileSetup && <ProfileSetup onProfileSubmit={handleProfileSubmit} user={user} />}
@@ -2618,44 +2607,4 @@
                         {activeTab === 'dashboard' && <Dashboard user={user} ledgerId={ledgerId} setActiveTab={setActiveTab} ledgerDoc={ledgerDoc} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
                         {activeTab === 'finance' && <FinanceTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
                         {activeTab === 'budget' && <BudgetTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
-                        {activeTab === 'savings' && <SavingsTracker user={user} ledgerId={ledgerId} setFirestoreError={setFirestoreError} />}
-                        {activeTab === 'habits' && <HabitTracker user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} setFirestoreError={setFirestoreError} ledgerDoc={ledgerDoc} />}
-                        {activeTab === 'calendar' && <EventsCalendar user={user} ledgerId={ledgerId} selectedDate={selectedDate} requestNotificationPermission={requestNotificationPermission} setFirestoreError={setFirestoreError} />}
-                        {activeTab === 'wishlist' && <TravelWishlist user={user} ledgerId={ledgerId} setFirestoreError={setFirestoreError} />}
-                        {activeTab === 'diary' && <Diary user={user} ledgerId={ledgerId} selectedDate={selectedDate} setFirestoreError={setFirestoreError} />}
-                        {activeTab === 'shopping' && <ShoppingList user={user} ledgerId={ledgerId} setFirestoreError={setFirestoreError} />}
-                    </main>
-
-                    {/* Footer Navigation (now a single menu button) */}
-                    <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
-                        <div className="flex justify-center items-center h-10 sm:h-16 max-w-xl mx-auto">
-                            <button
-                                onClick={() => setShowMenuPopup(true)}
-                                className="flex flex-col items-center justify-center p-2 text-xs font-medium text-gray-700 hover:text-blue-600 transition duration-200"
-                            >
-                                <MenuIcon className="h-6 w-6 mb-1" />
-                                <span>Menu</span>
-                            </button>
-                        </div>
-                    </footer>
-
-                    {/* Popup Menu */}
-                    {showMenuPopup && (
-                        <PopupMenu
-                            activeTab={activeTab}
-                            setActiveTab={setActiveTab}
-                            onClose={() => setShowMenuPopup(false)}
-                        />
-                    )}
-                </div>
-            );
-        }
-
-        const container = document.getElementById('root');
-        const root = ReactDOM.createRoot(container);
-        root.render(<App />);
-
-        {/* Removed Service Worker registration as it was causing issues in this environment. */}
-    </script>
-</body>
-</html>
+                        {activeTab === 'savings' && <SavingsTracker user={user} ledgerId={ledger
