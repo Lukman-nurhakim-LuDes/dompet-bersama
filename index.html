@@ -67,6 +67,18 @@
         .shadow-custom-card-purple {
             box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.1), 0 2px 4px -1px rgba(139, 92, 246, 0.06);
         }
+        /* Animation for popup menu */
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        .animate-slideUp {
+            animation: slideUp 0.3s ease-out forwards;
+        }
     </style>
 </head>
 <body>
@@ -79,6 +91,9 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- Konfigurasi Firebase ---
+        // Menggunakan konfigurasi yang disediakan pengguna.
+        // Jika Anda ingin menggunakan variabel lingkungan Canvas, gunakan:
+        // const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const firebaseConfig = {
             apiKey: "AIzaSyB91qA6AGjNBAEyIQSlHvN482esZKlP_Ok",
             authDomain: "dompet-pasangan-kita.firebaseapp.com",
@@ -96,6 +111,7 @@
             authInstance = getAuth(app);
         } catch (e) {
             console.error("Firebase initialization failed:", e);
+            // Anda mungkin ingin menampilkan pesan kesalahan kepada pengguna di sini
         }
 
         // --- Komponen Ikon ---
@@ -163,14 +179,31 @@
         };
 
         // Custom Modal/Message Box component
-        const MessageBox = ({ message, onClose }) => {
+        const MessageBox = ({ message, onClose, type = 'info' }) => {
+            let bgColor = 'bg-blue-600';
+            let textColor = 'text-blue-800';
+            let borderColor = 'border-blue-200';
+            let shadowColor = 'shadow-custom-blue';
+
+            if (type === 'error') {
+                bgColor = 'bg-red-600';
+                textColor = 'text-red-800';
+                borderColor = 'border-red-200';
+                shadowColor = 'shadow-custom-red';
+            } else if (type === 'success') {
+                bgColor = 'bg-green-600';
+                textColor = 'text-green-800';
+                borderColor = 'border-green-200';
+                shadowColor = 'shadow-custom-green';
+            }
+
             return (
                 <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
-                        <p className="text-gray-800 text-lg mb-4">{message}</p>
+                    <div className={`bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center border ${borderColor}`}>
+                        <p className={`text-lg mb-4 ${textColor}`}>{message}</p>
                         <button
                             onClick={onClose}
-                            className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200"
+                            className={`${bgColor} text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition duration-200 ${shadowColor}`}
                         >
                             OK
                         </button>
@@ -275,14 +308,14 @@
             const [messageBox, setMessageBox] = React.useState(null); // State for custom message box
 
             // Function to show custom message box
-            const showMessage = (msg) => {
-                setMessageBox(msg);
-            };
+            const showMessage = React.useCallback((msg, type = 'info') => {
+                setMessageBox({ msg, type });
+            }, []);
 
             // Function to close custom message box
-            const closeMessageBox = () => {
+            const closeMessageBox = React.useCallback(() => {
                 setMessageBox(null);
-            };
+            }, []);
 
             // Fetch transactions for the entire year for line chart
             React.useEffect(() => {
@@ -501,7 +534,7 @@
                 // Capture the main content area
                 const content = document.getElementById('dashboard-content-to-export');
                 if (!content) {
-                    showMessage('Konten untuk diekspor tidak ditemukan!');
+                    showMessage('Konten untuk diekspor tidak ditemukan!', 'error');
                     return;
                 }
 
@@ -511,7 +544,7 @@
                     const canvas = await html2canvas(content, {
                         scale: 2, // Increase scale for better quality
                         useCORS: true, // Enable CORS for images if any
-                        logging: true,
+                        logging: false, // Set to false for production
                         scrollY: -window.scrollY, // Capture elements outside viewport
                         windowWidth: document.documentElement.offsetWidth,
                         windowHeight: document.documentElement.offsetHeight
@@ -535,10 +568,10 @@
                     }
 
                     pdf.save(`Laporan_Keuangan_${getMonthName(selectedDate.getMonth())}_${selectedDate.getFullYear()}.pdf`);
-                    showMessage('Laporan PDF berhasil dibuat!');
+                    showMessage('Laporan PDF berhasil dibuat!', 'success');
                 } catch (error) {
                     console.error("Error generating PDF:", error);
-                    showMessage('Gagal membuat laporan PDF. Silakan coba lagi.');
+                    showMessage('Gagal membuat laporan PDF. Silakan coba lagi.', 'error');
                 }
             };
 
@@ -547,7 +580,7 @@
 
             return (
                 <>
-                    {messageBox && <MessageBox message={messageBox} onClose={closeMessageBox} />}
+                    {messageBox && <MessageBox message={messageBox.msg} onClose={closeMessageBox} type={messageBox.type} />}
                     <div className="space-y-8" id="dashboard-content-to-export"> {/* ID for PDF export */}
                         <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg flex flex-col md:flex-row justify-between items-center border border-gray-100">
                             <div>
@@ -781,14 +814,14 @@
             const defaultCategories = ['Makanan', 'Transportasi', 'Hiburan', 'Tagihan', 'Belanja', 'Lain-lain']; // Example categories
 
             // Function to show custom message box
-            const showMessage = (msg) => {
-                setMessageBox(msg);
-            };
+            const showMessage = React.useCallback((msg, type = 'info') => {
+                setMessageBox({ msg, type });
+            }, []);
 
             // Function to close custom message box
-            const closeMessageBox = () => {
+            const closeMessageBox = React.useCallback(() => {
                 setMessageBox(null);
-            };
+            }, []);
 
             // Fetch transactions
             React.useEffect(() => {
@@ -833,12 +866,17 @@
 
             const addTransaction = async (e) => {
                 e.preventDefault();
-                if (!description || !amount || !user || !user.uid || !ledgerId || !db) {
+                if (!description.trim() || !amount || !user || !user.uid || !ledgerId || !db) {
                     setError("Deskripsi, jumlah, atau informasi pengguna tidak lengkap.");
                     return;
                 }
+                if (isNaN(Number(amount)) || Number(amount) <= 0) {
+                    setError("Jumlah harus berupa angka positif.");
+                    return;
+                }
+
                 try {
-                    await addDoc(collection(db, `ledgers/${ledgerId}/transactions`), {
+                    const transactionData = {
                         description,
                         amount: Number(amount),
                         type,
@@ -847,7 +885,8 @@
                         userName: user.name || 'Anonim',
                         createdAt: serverTimestamp(),
                         monthYear: monthYear
-                    });
+                    };
+                    await addDoc(collection(db, `ledgers/${ledgerId}/transactions`), removeUndefined(transactionData));
 
                     // Update budget if it's an expense and a category is selected
                     if (type === 'pengeluaran' && category) {
@@ -858,7 +897,7 @@
                             });
                         } else {
                             // If budget category doesn't exist, create it as an expense
-                            await addDoc(collection(db, `ledgers/${ledgerId}/budgets`), {
+                            const newBudgetData = {
                                 name: category,
                                 budgetAmount: 0, // No planned budget, just track spent
                                 spentAmount: Number(amount),
@@ -866,7 +905,8 @@
                                 userId: user.uid, // User who added the expense
                                 userName: user.name || 'Anonim',
                                 createdAt: serverTimestamp()
-                            });
+                            };
+                            await addDoc(collection(db, `ledgers/${ledgerId}/budgets`), removeUndefined(newBudgetData));
                         }
                     }
 
@@ -881,7 +921,10 @@
             };
 
             const deleteTransaction = async (id, transactionType, transactionAmount, transactionCategory) => {
-                if (!db) return;
+                if (!db || !ledgerId) {
+                    setError("Database tidak tersedia atau ID ledger tidak ada.");
+                    return;
+                }
                 try {
                     await deleteDoc(doc(db, `ledgers/${ledgerId}/transactions/${id}`));
 
@@ -909,7 +952,7 @@
 
             return (
                 <>
-                    {messageBox && <MessageBox message={messageBox} onClose={closeMessageBox} />}
+                    {messageBox && <MessageBox message={messageBox.msg} onClose={closeMessageBox} type={messageBox.type} />}
                     {/* Financial Summary Card */}
                     <div className="bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-xl shadow-custom-card-blue p-6 mb-6">
                         <div className="flex justify-between items-center mb-4">
@@ -984,7 +1027,10 @@
                                                     <p className="text-sm text-gray-600">Terpakai: {formatCurrency(spent)}</p>
                                                     <p className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>Sisa: {formatCurrency(remaining)}</p>
                                                 </div>
-                                                <button onClick={() => deleteDoc(doc(db, `ledgers/${ledgerId}/budgets/${budget.id}`))} className="text-gray-400 hover:text-red-500 p-1 rounded-full transition duration-200"><TrashIcon /></button>
+                                                <button onClick={() => deleteDoc(doc(db, `ledgers/${ledgerId}/budgets/${budget.id}`)).catch(e => {
+                                                    console.error("Error deleting budget:", e);
+                                                    showMessage("Gagal menghapus anggaran.", "error");
+                                                })} className="text-gray-400 hover:text-red-500 p-1 rounded-full transition duration-200"><TrashIcon /></button>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
                                                 <div className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isOverBudget ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${progress > 100 ? 100 : progress}%` }}></div>
@@ -998,18 +1044,21 @@
                         <button onClick={() => {
                                 const categoryName = prompt("Masukkan nama kategori anggaran baru:");
                                 const budgetAmount = prompt("Masukkan jumlah anggaran untuk kategori ini:");
-                                if (categoryName && budgetAmount && !isNaN(Number(budgetAmount))) {
-                                    addDoc(collection(db, `ledgers/${ledgerId}/budgets`), {
+                                if (categoryName && budgetAmount && !isNaN(Number(budgetAmount)) && Number(budgetAmount) >= 0) {
+                                    addDoc(collection(db, `ledgers/${ledgerId}/budgets`), removeUndefined({
                                         name: categoryName,
                                         budgetAmount: Number(budgetAmount),
                                         spentAmount: 0, // Initialize spent amount for new budget
                                         monthYear: monthYear,
-                                        userId: user.uid,
+                                        userId: user.uid, // User who added the expense
                                         userName: user.name || 'Anonim',
                                         createdAt: serverTimestamp()
-                                    }).catch(err => console.error("Error adding budget from prompt:", err));
+                                    })).catch(err => {
+                                        console.error("Error adding budget from prompt:", err);
+                                        showMessage("Gagal menambah anggaran.", "error");
+                                    });
                                 } else if (categoryName || budgetAmount) {
-                                    showMessage("Input tidak valid. Nama kategori dan jumlah anggaran harus diisi dengan benar.");
+                                    showMessage("Input tidak valid. Nama kategori dan jumlah anggaran harus diisi dengan benar dan jumlah harus non-negatif.", "error");
                                 }
                             }} className="w-full mt-4 bg-blue-100 text-blue-800 font-bold py-2 px-4 rounded-lg hover:bg-blue-200 transition duration-200">
                             Atur Anggaran Baru
@@ -1050,14 +1099,14 @@
             const [messageBox, setMessageBox] = React.useState(null); // State for custom message box
 
             // Function to show custom message box
-            const showMessage = (msg) => {
-                setMessageBox(msg);
-            };
+            const showMessage = React.useCallback((msg, type = 'info') => {
+                setMessageBox({ msg, type });
+            }, []);
 
             // Function to close custom message box
-            const closeMessageBox = () => {
+            const closeMessageBox = React.useCallback(() => {
                 setMessageBox(null);
-            };
+            }, []);
 
             const daysInMonth = React.useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate(), [selectedDate]);
             const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -1098,7 +1147,7 @@
                         console.log(`Waktu pengingat kebiasaan untuk "${title}" sudah lewat.`);
                     }
                 } else if (Notification.permission === "denied") {
-                    showMessage("Izin notifikasi ditolak. Silakan izinkan notifikasi di pengaturan browser Anda untuk pengingat kebiasaan.");
+                    showMessage("Izin notifikasi ditolak. Silakan izinkan notifikasi di pengaturan browser Anda untuk pengingat kebiasaan.", "error");
                 } else {
                     requestNotificationPermission();
                 }
@@ -1136,12 +1185,12 @@
                     setIsLoading(false);
                 });
                 return () => unsubscribe();
-            }, [user, ledgerId, selectedDate, setFirestoreError, daysInMonth]); // Added daysInMonth to dependencies
+            }, [user, ledgerId, selectedDate, setFirestoreError, daysInMonth, requestNotificationPermission]); // Added requestNotificationPermission to dependencies
 
             const addHabit = async (e) => {
                 e.preventDefault();
                 // Ensure user and user.uid exist before adding habit
-                if (!newHabitName || !user || !user.uid || !ledgerId || !db) {
+                if (!newHabitName.trim() || !user || !user.uid || !ledgerId || !db) {
                     setError("Nama kebiasaan atau informasi pengguna tidak lengkap.");
                     return;
                 }
@@ -1164,7 +1213,10 @@
             };
 
             const toggleHabitCompletion = async (habit, day, targetUserId) => {
-                if (!db) return;
+                if (!db || !ledgerId) {
+                    showMessage("Database tidak tersedia atau ID ledger tidak ada.", "error");
+                    return;
+                }
                 const dateString = `${monthYear}-${String(day).padStart(2, '0')}`;
                 const userCompletions = habit.completions?.[targetUserId] || [];
                 const isDone = userCompletions.includes(dateString);
@@ -1183,12 +1235,16 @@
                     });
                 } catch (err) {
                     console.error("Error toggling habit:", err);
+                    showMessage("Gagal memperbarui kebiasaan.", "error");
                 }
             };
             
             const deleteHabit = async (id) => {
-                if (!db) return;
-                try { await deleteDoc(doc(db, `ledgers/${ledgerId}/habits/${id}`)); } catch (err) { console.error("Error deleting habit:", err); }
+                if (!db || !ledgerId) {
+                    showMessage("Database tidak tersedia atau ID ledger tidak ada.", "error");
+                    return;
+                }
+                try { await deleteDoc(doc(db, `ledgers/${ledgerId}/habits/${id}`)); } catch (err) { console.error("Error deleting habit:", err); showMessage("Gagal menghapus kebiasaan.", "error"); }
             };
 
             // Calculate daily progress percentage (needs adjustment for multiple users)
@@ -1236,7 +1292,7 @@
 
             return (
                 <>
-                    {messageBox && <MessageBox message={messageBox} onClose={closeMessageBox} />}
+                    {messageBox && <MessageBox message={messageBox.msg} onClose={closeMessageBox} type={messageBox.type} />}
                     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Tambah Kebiasaan Baru</h2>
                         <form onSubmit={addHabit} className="flex flex-col space-y-3">
@@ -1347,14 +1403,14 @@
             const [messageBox, setMessageBox] = React.useState(null); // State for custom message box
 
             // Function to show custom message box
-            const showMessage = (msg) => {
-                setMessageBox(msg);
-            };
+            const showMessage = React.useCallback((msg, type = 'info') => {
+                setMessageBox({ msg, type });
+            }, []);
 
             // Function to close custom message box
-            const closeMessageBox = () => {
+            const closeMessageBox = React.useCallback(() => {
                 setMessageBox(null);
-            };
+            }, []);
 
             React.useEffect(() => {
                 if (!user || !ledgerId || !db) {
@@ -1380,12 +1436,21 @@
             const addGoal = async (e) => {
                 e.preventDefault();
                 // Ensure user and user.uid exist before adding goal
-                if (!newGoalName || !newTargetAmount || !user || !user.uid || !ledgerId || !db) {
+                if (!newGoalName.trim() || !newTargetAmount || !user || !user.uid || !ledgerId || !db) {
                     setError("Nama target, jumlah target, atau informasi pengguna tidak lengkap.");
                     return;
                 }
+                if (isNaN(Number(newTargetAmount)) || Number(newTargetAmount) <= 0) {
+                    setError("Jumlah target harus berupa angka positif.");
+                    return;
+                }
+                if (newMonthlyContribution && (isNaN(Number(newMonthlyContribution)) || Number(newMonthlyContribution) < 0)) {
+                    setError("Kontribusi bulanan harus berupa angka non-negatif.");
+                    return;
+                }
+
                 try {
-                    await addDoc(collection(db, `ledgers/${ledgerId}/savings`), {
+                    const goalData = {
                         name: newGoalName,
                         targetAmount: Number(newTargetAmount),
                         currentAmount: 0,
@@ -1393,7 +1458,8 @@
                         createdAt: serverTimestamp(),
                         userId: user.uid,
                         userName: user.name || 'Anonim' // Store userName with goal
-                    });
+                    };
+                    await addDoc(collection(db, `ledgers/${ledgerId}/savings`), removeUndefined(goalData));
                     setNewGoalName('');
                     setNewTargetAmount('');
                     setNewMonthlyContribution(''); // Reset monthly contribution
@@ -1405,10 +1471,13 @@
             };
 
             const addFunds = async (goalId) => {
-                if (!db) return;
+                if (!db || !ledgerId) {
+                    showMessage("Database tidak tersedia atau ID ledger tidak ada.", "error");
+                    return;
+                }
                 const amount = Number(amountToAdd[goalId] || 0);
-                if (amount <= 0) {
-                    showMessage("Jumlah harus lebih besar dari nol.");
+                if (isNaN(amount) || amount <= 0) {
+                    showMessage("Jumlah harus lebih besar dari nol.", "error");
                     return;
                 }
                 try {
@@ -1417,17 +1486,20 @@
                     setError('');
                 } catch (err) {
                     console.error("Error adding funds:", err);
-                    setError("Gagal menambah dana.");
+                    showMessage("Gagal menambah dana.", "error");
                 }
             };
 
             const deleteGoal = async (id) => {
-                if (!db) return;
+                if (!db || !ledgerId) {
+                    showMessage("Database tidak tersedia atau ID ledger tidak ada.", "error");
+                    return;
+                }
                 try {
                     await deleteDoc(doc(db, `ledgers/${ledgerId}/savings/${id}`));
                 } catch (err) {
                     console.error("Error deleting goal:", err);
-                    setError("Gagal menghapus target.");
+                    showMessage("Gagal menghapus target.", "error");
                 }
             };
 
@@ -1441,7 +1513,7 @@
 
             return (
                 <>
-                    {messageBox && <MessageBox message={messageBox} onClose={closeMessageBox} />}
+                    {messageBox && <MessageBox message={messageBox.msg} onClose={closeMessageBox} type={messageBox.type} />}
                     {/* Savings Summary Card */}
                     <div className="bg-gradient-to-br from-green-500 to-green-700 text-white rounded-xl shadow-custom-card-green p-6 mb-6">
                         <div className="flex justify-between items-center mb-4">
@@ -1543,14 +1615,14 @@
             const [messageBox, setMessageBox] = React.useState(null); // State for custom message box
 
             // Function to show custom message box
-            const showMessage = (msg) => {
-                setMessageBox(msg);
-            };
+            const showMessage = React.useCallback((msg, type = 'info') => {
+                setMessageBox({ msg, type });
+            }, []);
 
             // Function to close custom message box
-            const closeMessageBox = () => {
+            const closeMessageBox = React.useCallback(() => {
                 setMessageBox(null);
-            };
+            }, []);
 
             React.useEffect(() => {
                 if (!user || !ledgerId || !db) { setIsLoading(false); setWishlistItems([]); return; }
@@ -1572,6 +1644,15 @@
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
                 if (file) {
+                    // Check file size (e.g., limit to 500KB to avoid Firestore document size limits)
+                    if (file.size > 500 * 1024) { // 500 KB
+                        showMessage("Ukuran gambar terlalu besar. Maksimal 500KB.", "error");
+                        setNewPhoto(null);
+                        setPhotoPreview(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                        return;
+                    }
+
                     const reader = new FileReader();
                     reader.onloadend = () => {
                         setNewPhoto(reader.result); // Base64 string
@@ -1586,11 +1667,22 @@
 
             const addWishlistItem = async (e) => {
                 e.preventDefault();
-                if (!newDestination || !user || !ledgerId || !db) return;
+                if (!newDestination.trim() || !user || !ledgerId || !db) {
+                    setError("Destinasi tidak boleh kosong.");
+                    return;
+                }
+                if (newEstimatedCost && (isNaN(Number(newEstimatedCost)) || Number(newEstimatedCost) < 0)) {
+                    setError("Estimasi biaya harus berupa angka non-negatif.");
+                    return;
+                }
+
+                // WARNING: Storing Base64 images directly in Firestore documents can lead to hitting the 1MB document size limit.
+                // For production applications with larger images or many images, consider using Firebase Cloud Storage
+                // and storing only the image URL in Firestore.
                 try {
-                    await addDoc(collection(db, `ledgers/${ledgerId}/travelWishlist`), {
+                    const wishlistItemData = {
                         destination: newDestination,
-                        description: newDescription,
+                        description: newDescription || null,
                         estimatedCost: Number(newEstimatedCost) || 0, // Save estimated cost
                         linkedSavingsGoal: newLinkedSavingsGoal || null, // Save linked savings goal
                         photoBase64: newPhoto || null, // Store Base64 or null
@@ -1598,32 +1690,39 @@
                         userId: user.uid,
                         userName: user.name || 'Anonim',
                         createdAt: serverTimestamp()
-                    });
+                    };
+                    await addDoc(collection(db, `ledgers/${ledgerId}/travelWishlist`), removeUndefined(wishlistItemData));
                     setNewDestination(''); setNewDescription(''); setNewEstimatedCost(''); setNewLinkedSavingsGoal(''); setNewPhoto(null); setPhotoPreview(null); setError('');
                     if (fileInputRef.current) fileInputRef.current.value = ''; // Clear file input
                 } catch (err) { console.error("Error adding wishlist item:", err); setError("Gagal menambah item wishlist."); }
             };
 
             const toggleVisitedStatus = async (item) => {
-                if (!db) return;
+                if (!db || !ledgerId) {
+                    showMessage("Database tidak tersedia atau ID ledger tidak ada.", "error");
+                    return;
+                }
                 try {
                     await updateDoc(doc(db, `ledgers/${ledgerId}/travelWishlist/${item.id}`), {
                         visited: !item.visited
                     });
                 } catch (err) {
                     console.error("Error toggling visited status:", err);
-                    setError("Gagal memperbarui status kunjungan.");
+                    showMessage("Gagal memperbarui status kunjungan.", "error");
                 }
             };
 
             const deleteWishlistItem = async (id) => {
-                if(!db) return;
-                try { await deleteDoc(doc(db, `ledgers/${ledgerId}/travelWishlist/${id}`)); } catch (err) { console.error("Error deleting wishlist item:", err); setError("Gagal menghapus item wishlist."); }
+                if(!db || !ledgerId) {
+                    showMessage("Database tidak tersedia atau ID ledger tidak ada.", "error");
+                    return;
+                }
+                try { await deleteDoc(doc(db, `ledgers/${ledgerId}/travelWishlist/${id}`)); } catch (err) { console.error("Error deleting wishlist item:", err); showMessage("Gagal menghapus item wishlist.", "error"); }
             };
 
             return (
                 <>
-                    {messageBox && <MessageBox message={messageBox} onClose={closeMessageBox} />}
+                    {messageBox && <MessageBox message={messageBox.msg} onClose={closeMessageBox} type={messageBox.type} />}
                     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Tambah Tempat Liburan Impian</h2>
                         <form onSubmit={addWishlistItem} className="space-y-4">
@@ -1694,14 +1793,14 @@
             const [messageBox, setMessageBox] = React.useState(null); // State for custom message box
 
             // Function to show custom message box
-            const showMessage = (msg) => {
-                setMessageBox(msg);
-            };
+            const showMessage = React.useCallback((msg, type = 'info') => {
+                setMessageBox({ msg, type });
+            }, []);
 
             // Function to close custom message box
-            const closeMessageBox = () => {
+            const closeMessageBox = React.useCallback(() => {
                 setMessageBox(null);
-            };
+            }, []);
 
             React.useEffect(() => {
                 if (!user || !ledgerId || !db) {
@@ -1757,18 +1856,21 @@
             };
 
             const deleteDiaryEntry = async (id) => {
-                if (!db) return;
+                if (!db || !ledgerId) {
+                    showMessage("Database tidak tersedia atau ID ledger tidak ada.", "error");
+                    return;
+                }
                 try {
                     await deleteDoc(doc(db, `ledgers/${ledgerId}/diaryEntries/${id}`));
                 } catch (err) {
                     console.error("Error deleting diary entry:", err);
-                    setError("Gagal menghapus entri buku harian.");
+                    showMessage("Gagal menghapus entri buku harian.", "error");
                 }
             };
 
             return (
                 <>
-                    {messageBox && <MessageBox message={messageBox} onClose={closeMessageBox} />}
+                    {messageBox && <MessageBox message={messageBox.msg} onClose={closeMessageBox} type={messageBox.type} />}
                     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Tulis Entri Buku Harian Baru</h2>
                         <form onSubmit={addDiaryEntry} className="space-y-4">
@@ -1844,14 +1946,14 @@
             const [messageBox, setMessageBox] = React.useState(null); // State for custom message box
 
             // Function to show custom message box
-            const showMessage = (msg) => {
-                setMessageBox(msg);
-            };
+            const showMessage = React.useCallback((msg, type = 'info') => {
+                setMessageBox({ msg, type });
+            }, []);
 
             // Function to close custom message box
-            const closeMessageBox = () => {
+            const closeMessageBox = React.useCallback(() => {
                 setMessageBox(null);
-            };
+            }, []);
 
             const daysInMonth = React.useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate(), [selectedDate]);
             const firstDayOfMonth = React.useMemo(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay(), [selectedDate]); // 0 for Sunday, 1 for Monday
@@ -1956,18 +2058,21 @@
 
             // Handler untuk menghapus acara
             const deleteEvent = async (id) => {
-                if (!db) return;
+                if (!db || !ledgerId) {
+                    showMessage("Database tidak tersedia atau ID ledger tidak ada.", "error");
+                    return;
+                }
                 try {
                     await deleteDoc(doc(db, `ledgers/${ledgerId}/events/${id}`));
                 } catch (err) {
                     console.error("Error deleting event:", err);
-                    setError("Gagal menghapus acara.");
+                    showMessage("Gagal menghapus acara.", "error");
                 }
             };
 
             return (
                 <>
-                    {messageBox && <MessageBox message={messageBox} onClose={closeMessageBox} />}
+                    {messageBox && <MessageBox message={messageBox.msg} onClose={closeMessageBox} type={messageBox.type} />}
                     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Tambah Acara Baru</h2>
                         <form onSubmit={addEvent} className="space-y-4">
@@ -2041,6 +2146,7 @@
                                                         event.category === 'Liburan' ? 'bg-green-100 text-green-800' :
                                                         'bg-blue-100 text-blue-800'}`}>
                                                         {event.time && <span className="mr-1">{event.time}</span>}{event.title}
+                                                        <button onClick={(e) => { e.stopPropagation(); deleteEvent(event.id); }} className="float-right text-gray-400 hover:text-red-500"><TrashIcon className="h-3 w-3 inline-block" /></button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -2082,14 +2188,14 @@
             const [messageBox, setMessageBox] = React.useState(null); // State for custom message box
 
             // Function to show custom message box
-            const showMessage = (msg) => {
-                setMessageBox(msg);
-            };
+            const showMessage = React.useCallback((msg, type = 'info') => {
+                setMessageBox({ msg, type });
+            }, []);
 
             // Function to close custom message box
-            const closeMessageBox = () => {
+            const closeMessageBox = React.useCallback(() => {
                 setMessageBox(null);
-            };
+            }, []);
 
             React.useEffect(() => {
                 if (!user || !ledgerId || !db) { setIsLoading(false); setListItems([]); return; }
@@ -2115,13 +2221,14 @@
                     return;
                 }
                 try {
-                    await addDoc(collection(db, `ledgers/${ledgerId}/shoppingList`), {
+                    const listItemData = {
                         name: newItemName,
                         purchased: false,
                         userId: user.uid,
                         userName: user.name || 'Anonim',
                         createdAt: serverTimestamp()
-                    });
+                    };
+                    await addDoc(collection(db, `ledgers/${ledgerId}/shoppingList`), removeUndefined(listItemData));
                     setNewItemName('');
                     setError('');
                 } catch (err) {
@@ -2131,30 +2238,36 @@
             };
 
             const togglePurchasedStatus = async (item) => {
-                if (!db) return;
+                if (!db || !ledgerId) {
+                    showMessage("Database tidak tersedia atau ID ledger tidak ada.", "error");
+                    return;
+                }
                 try {
                     await updateDoc(doc(db, `ledgers/${ledgerId}/shoppingList/${item.id}`), {
                         purchased: !item.purchased
                     });
                 } catch (err) {
                     console.error("Error toggling purchased status:", err);
-                    setError("Gagal memperbarui status item.");
+                    showMessage("Gagal memperbarui status item.", "error");
                 }
             };
 
             const deleteListItem = async (id) => {
-                if (!db) return;
+                if (!db || !ledgerId) {
+                    showMessage("Database tidak tersedia atau ID ledger tidak ada.", "error");
+                    return;
+                }
                 try {
                     await deleteDoc(doc(db, `ledgers/${ledgerId}/shoppingList/${id}`));
                 } catch (err) {
                     console.error("Error deleting list item:", err);
-                    setError("Gagal menghapus item.");
+                    showMessage("Gagal menghapus item.", "error");
                 }
             };
 
             return (
                 <>
-                    {messageBox && <MessageBox message={messageBox} onClose={closeMessageBox} />}
+                    {messageBox && <MessageBox message={messageBox.msg} onClose={closeMessageBox} type={messageBox.type} />}
                     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Tambah Item Belanja</h2>
                         <form onSubmit={addListItem} className="space-y-3">
@@ -2208,6 +2321,17 @@
             const [photo, setPhoto] = React.useState(null); // This will hold the base64 data URL
             const [photoPreview, setPhotoPreview] = React.useState(user?.photoURL || 'https://placehold.co/100x100/E2E8F0/4A5568?text=?');
             const fileInputRef = React.useRef();
+            const [messageBox, setMessageBox] = React.useState(null); // State for custom message box
+
+            // Function to show custom message box
+            const showMessage = React.useCallback((msg, type = 'info') => {
+                setMessageBox({ msg, type });
+            }, []);
+
+            // Function to close custom message box
+            const closeMessageBox = React.useCallback(() => {
+                setMessageBox(null);
+            }, []);
 
             React.useEffect(() => {
                 // Update photoPreview if user's photoURL changes externally (e.g., from ledgerDoc)
@@ -2223,17 +2347,30 @@
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
                 if (file) {
+                    // Check file size (e.g., limit to 500KB to avoid Firestore document size limits)
+                    if (file.size > 500 * 1024) { // 500 KB
+                        showMessage("Ukuran gambar terlalu besar. Maksimal 500KB.", "error");
+                        setNewPhoto(null);
+                        setPhotoPreview(user?.photoURL || 'https://placehold.co/100x100/E2E8F0/4A5568?text=?'); // Reset to current or default
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                        return;
+                    }
+
                     const reader = new FileReader();
                     reader.onloadend = () => {
                         setPhoto(reader.result); // Set the base64 string
                         setPhotoPreview(reader.result);
                     };
                     reader.readAsDataURL(file);
+                } else {
+                    setPhoto(null);
+                    setPhotoPreview(user?.photoURL || 'https://placehold.co/100x100/E2E8F0/4A5568?text=?'); // Reset to current or default
                 }
             };
 
             return (
                 <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
+                    {messageBox && <MessageBox message={messageBox.msg} onClose={closeMessageBox} type={messageBox.type} />}
                     <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-lg text-center"> {/* Increased max-width */}
                         <h2 className="text-2xl font-bold text-gray-800 mb-6">Pengaturan Profil</h2>
 
@@ -2357,7 +2494,8 @@
 
         // --- Komponen Utama Aplikasi ---
         function App() {
-            const isConfigValid = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("GANTI_DENGAN");
+            // Check if firebaseConfig is valid (not using placeholder API key)
+            const isConfigValid = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("AIzaSyB91qA6AGjNBAEyIQSlHvN482esZKlP_Ok"); // Updated check
 
             const [user, setUser] = React.useState(null);
             const [ledgerId, setLedgerId] = React.useState(localStorage.getItem('ledgerId') || '');
@@ -2378,7 +2516,7 @@
             }, [selectedDate]);
 
             // Fungsi untuk meminta izin notifikasi browser
-            const requestNotificationPermission = () => {
+            const requestNotificationPermission = React.useCallback(() => {
                 if (!("Notification" in window)) {
                     console.log("Browser ini tidak mendukung notifikasi desktop.");
                 } else if (Notification.permission === "default") {
@@ -2390,10 +2528,14 @@
                         }
                     });
                 }
-            };
+            }, []);
 
             // Fungsi untuk registrasi
-            const handleRegister = async (email, password) => {
+            const handleRegister = React.useCallback(async (email, password) => {
+                if (!authInstance) {
+                    setAuthError(new Error("Layanan otentikasi tidak tersedia."));
+                    throw new Error("Auth service not available.");
+                }
                 try {
                     // Set persistence before creating user
                     await setPersistence(authInstance, browserLocalPersistence);
@@ -2405,10 +2547,14 @@
                     setAuthError(error);
                     throw error; // Throw error so AuthScreen can display it
                 }
-            };
+            }, [authInstance, requestNotificationPermission]);
 
             // Fungsi untuk login
-            const handleLogin = async (email, password) => {
+            const handleLogin = React.useCallback(async (email, password) => {
+                if (!authInstance) {
+                    setAuthError(new Error("Layanan otentikasi tidak tersedia."));
+                    throw new Error("Auth service not available.");
+                }
                 try {
                     // Set persistence before signing in
                     await setPersistence(authInstance, browserLocalPersistence);
@@ -2420,10 +2566,11 @@
                     setAuthError(error);
                     throw error; // Throw error so AuthScreen can display it
                 }
-            };
+            }, [authInstance, requestNotificationPermission]);
 
             // Fungsi untuk logout
-            const handleLogout = async () => {
+            const handleLogout = React.useCallback(async () => {
+                if (!authInstance) return;
                 try {
                     await signOut(authInstance);
                     setUser(null);
@@ -2435,11 +2582,12 @@
                 } catch (error) {
                     console.error("Logout error:", error);
                 }
-            };
+            }, [authInstance]);
 
-            const handleProfileSubmit = async (name, photoURL) => {
+            const handleProfileSubmit = React.useCallback(async (name, photoURL) => {
                 if (!user?.uid || !ledgerId || !name || !db) {
                     console.error("Informasi profil tidak lengkap.");
+                    setFirestoreError("Gagal menyimpan profil: Informasi tidak lengkap.");
                     return;
                 }
                 const ledgerDocRef = doc(db, `ledgers/${ledgerId}`);
@@ -2473,51 +2621,57 @@
                     console.error("Error setting profile:", error);
                     setFirestoreError("Kesalahan Izin: Gagal memperbarui profil. Pastikan Aturan Keamanan Firestore Anda mengizinkan akses untuk ledger ini. Silakan periksa Firebase Console Anda.");
                 }
-            };
+            }, [user, ledgerId, db, ledgerDoc, setFirestoreError]);
 
             // FIX: Move the definitions of these functions here
-            const createNewLedger = async () => { // Make async
+            const createNewLedger = React.useCallback(async () => { // Make async
+                if (!user || !db) {
+                    setFirestoreError("Pengguna tidak terautentikasi atau database tidak tersedia.");
+                    return;
+                }
                 const newId = `BERSAMA-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
                 setLedgerId(newId);
                 localStorage.setItem('ledgerId', newId);
 
                 // Immediately try to create the ledger document with the current user as participant
-                if (user && db) {
-                    const ledgerDocRef = doc(db, `ledgers/${newId}`);
-                    try {
-                        await setDoc(ledgerDocRef, {
-                            createdAt: serverTimestamp(),
-                            createdBy: user.uid,
-                            participants: {
-                                [user.uid]: {
-                                    name: user.name || user.email || 'Pengguna Baru',
-                                    email: user.email || null,
-                                    photoURL: user.photoURL || null
-                                }
+                const ledgerDocRef = doc(db, `ledgers/${newId}`);
+                try {
+                    await setDoc(ledgerDocRef, removeUndefined({
+                        createdAt: serverTimestamp(),
+                        createdBy: user.uid,
+                        participants: {
+                            [user.uid]: {
+                                name: user.name || user.email || 'Pengguna Baru',
+                                email: user.email || null,
+                                photoURL: user.photoURL || null
                             }
-                        });
-                        console.log("New ledger created with current user as participant:", newId);
-                        // After creating, the onSnapshot listener for ledgerDoc will pick it up
-                        // and trigger ProfileSetup if name/photoURL are missing.
-                    } catch (error) {
-                        console.error("Error creating new ledger document:", error);
-                        setFirestoreError("Gagal membuat ruang bersama baru. Pastikan Anda memiliki izin 'create' di aturan keamanan Firestore Anda untuk koleksi 'ledgers'.");
-                        // Clear ledgerId if creation fails to return to selection screen
-                        setLedgerId('');
-                        localStorage.removeItem('ledgerId');
-                    }
+                        }
+                    }));
+                    console.log("New ledger created with current user as participant:", newId);
+                    // After creating, the onSnapshot listener for ledgerDoc will pick it up
+                    // and trigger ProfileSetup if name/photoURL are missing.
+                } catch (error) {
+                    console.error("Error creating new ledger document:", error);
+                    setFirestoreError("Gagal membuat ruang bersama baru. Pastikan Anda memiliki izin 'create' di aturan keamanan Firestore Anda untuk koleksi 'ledgers'.");
+                    // Clear ledgerId if creation fails to return to selection screen
+                    setLedgerId('');
+                    localStorage.removeItem('ledgerId');
                 }
-            };
+            }, [user, db, setFirestoreError]);
 
-            const joinLedger = () => {
-                if (tempLedgerId) {
-                    setLedgerId(tempLedgerId);
-                    localStorage.setItem('ledgerId', tempLedgerId);
+            const joinLedger = React.useCallback(() => {
+                if (tempLedgerId.trim()) {
+                    setLedgerId(tempLedgerId.trim());
+                    localStorage.setItem('ledgerId', tempLedgerId.trim());
                     // The onSnapshot listener for ledgerDoc will then check if the user is a participant
                     // and prompt for profile setup or show error if not.
+                } else {
+                    setFirestoreError("Kode Ruang tidak boleh kosong.");
                 }
-            };
-            const copyLedgerId = () => {
+            }, [tempLedgerId, setFirestoreError]);
+
+            const copyLedgerId = React.useCallback(() => {
+                if (!ledgerId) return;
                 const d = document.createElement('textarea');
                 d.value = ledgerId;
                 document.body.appendChild(d);
@@ -2526,12 +2680,15 @@
                 document.body.removeChild(d);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
-            };
+            }, [ledgerId]);
 
 
             // Effect for Firebase authentication
             React.useEffect(() => {
-                if (!authInstance) return;
+                if (!authInstance) {
+                    setIsAuthReady(true); // If authInstance is null, then Firebase init failed, proceed to config error
+                    return;
+                }
 
                 const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
                     if (currentUser) {
@@ -2657,9 +2814,10 @@
                                 <button onClick={createNewLedger} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition duration-200">Buat Ruang Baru</button>
                                 <div className="flex items-center space-x-2">
                                     <input type="text" value={tempLedgerId} onChange={(e) => setTempLedgerId(e.target.value)} placeholder="Masukkan Kode Ruang" className="flex-grow p-3 border rounded-lg" />
-                                    <button onClick={joinLedger} disabled={!tempLedgerId} className="bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700 disabled:bg-gray-300 transition duration-200">Gabung</button>
+                                    <button onClick={joinLedger} disabled={!tempLedgerId.trim()} className="bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700 disabled:bg-gray-300 transition duration-200">Gabung</button>
                                 </div>
                             </div>
+                            {firestoreError && <p className="text-red-500 text-sm mt-4">{firestoreError}</p>} {/* Display Firestore error here */}
                             <button onClick={handleLogout} className="mt-8 text-red-500 hover:underline text-sm">Logout</button>
                         </div>
                     </div>
@@ -2670,7 +2828,7 @@
             return (
                 <div className="min-h-screen font-sans bg-gradient-to-br from-blue-50 to-indigo-100 pb-16"> {/* Add padding-bottom for fixed footer */}
                     {showProfileSetup && <ProfileSetup onProfileSubmit={handleProfileSubmit} user={user} />}
-                    {firestoreError && <MessageBox message={firestoreError} onClose={() => setFirestoreError(null)} />}
+                    {firestoreError && <MessageBox message={firestoreError} onClose={() => setFirestoreError(null)} type="error" />}
                     <header className="bg-white/70 backdrop-blur-sm shadow-md sticky top-0 z-20">
                         <div className="max-w-4xl mx-auto p-1 sm:p-4"> {/* Reduced overall padding on mobile */}
                             {/* Reduced vertical padding on mobile and adjusted text size */}
