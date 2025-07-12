@@ -15,6 +15,7 @@
     <!-- Pastikan Anda membuat file manifest.json di root direktori Anda -->
     <link rel="manifest" href="/manifest.json">
 
+    
     <!-- Memuat Library -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -94,14 +95,14 @@
         // Menggunakan konfigurasi yang disediakan pengguna.
         // Jika Anda ingin menggunakan variabel lingkungan Canvas, gunakan:
         // const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const firebaseConfig = {
-            apiKey: "AIzaSyB91qA6AGjNBAEyIQSlHvN482esZKlP_Ok",
-            authDomain: "dompet-pasangan-kita.firebaseapp.com",
-            projectId: "dompet-pasangan-kita",
-            storageBucket: "dompet-pasangan-kita.appspot.com",
-            messagingSenderId: "54318864599",
-            appId: "1:54318864599:web:3fc852b439a62577563892"
-        };
+        const firebaseConfig = { 
+           apiKey : "AIzaSyB91qA6AGjNBAEyIQSlHvN482esZKlP_Ok" , 
+           authDomain : "dompet-pasangan-kita.firebaseapp.com" , 
+           projectId : "dompet-pasangan-kita" , 
+           storageBucket : "dompet-pasangan-kita.firebasestorage.app" , 
+           messageSenderId : "54318864599" , 
+           appId : "1:54318864599:web:3fc852b439a62577563892" 
+       };
 
         // --- Inisialisasi Firebase ---
         let app, db, authInstance;
